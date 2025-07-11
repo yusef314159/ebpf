@@ -1,0 +1,42 @@
+You're my technical assistant for building a small PoC for a high-performance, eBPF-based distributed tracing system.
+
+Our goal is to trace an incoming HTTP GET or POST request from a client, through the backend (any stack, e.g., Kafka, DB), and extract key metadata such as path, headers, timing, and destination.
+
+🔧 Project Context:
+This PoC will be delivered in 3–5 days.
+
+The PoC will consist of:
+
+A kernel-space eBPF tracer (in C) that hooks into syscalls like accept(), read(), write(), and connect().
+
+A userspace agent (in Go) that:
+
+Loads and attaches the eBPF program
+
+Reads events from a ring buffer
+
+Prints or exports request metadata and latency
+
+The system should work without application code modification.
+
+Focus is on plaintext HTTP (not HTTPS) and runtime-agnostic tracing.
+
+🧠 Assistant, help me with the following:
+Generate a minimal working eBPF C program that hooks into accept() and read() to detect inbound HTTP requests.
+
+Define the event_t struct to pass timestamp, PID, command name, method/path (partial payload) to user space.
+
+Generate the Go code to:
+
+- Load and attach the compiled BPF object
+
+- Create and read a ring buffer
+
+- Log each trace event to stdout in structured JSON
+
+- Explain how to safely extract partial HTTP payload (method/path) from the socket in kernel space, while staying within verifier limits.
+
+- Generate test scripts to simulate HTTP traffic using curl against a local Python Flask server.
+
+- (Optional) Suggest next steps to correlate outbound connections (e.g., DB call) with the original request via 5-tuple matching.
+
