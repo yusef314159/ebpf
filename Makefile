@@ -88,6 +88,65 @@ test-full:
 	@echo "Running comprehensive HTTP tests..."
 	./$(TEST_DIR)/test_requests.sh
 
+# Run unit tests
+.PHONY: test-unit
+test-unit:
+	@echo "Running unit tests..."
+	$(GO) test -v ./test/unit/...
+
+# Run eBPF program tests
+.PHONY: test-ebpf
+test-ebpf: $(EBPF_OBJ)
+	@echo "Running eBPF program tests..."
+	$(GO) test -v ./test/ebpf/...
+
+# Run all tests
+.PHONY: test-all
+test-all: test-unit test-ebpf test test-full
+	@echo "All tests completed!"
+
+# Run comprehensive test suite
+.PHONY: test-suite
+test-suite:
+	@echo "Running comprehensive test suite..."
+	./$(TEST_DIR)/run_tests.sh
+
+# Run tests with verbose output
+.PHONY: test-verbose
+test-verbose:
+	@echo "Running tests with verbose output..."
+	VERBOSE=true ./$(TEST_DIR)/run_tests.sh
+
+# Run benchmarks
+.PHONY: benchmark
+benchmark:
+	@echo "Running benchmarks..."
+	RUN_BENCHMARKS=true ./$(TEST_DIR)/run_tests.sh
+
+# Run comprehensive performance benchmarks
+.PHONY: benchmark-performance
+benchmark-performance:
+	@echo "Running comprehensive performance benchmarks..."
+	./$(TEST_DIR)/run_benchmarks.sh
+
+# Run performance benchmarks with verbose output
+.PHONY: benchmark-verbose
+benchmark-verbose:
+	@echo "Running performance benchmarks with verbose output..."
+	VERBOSE=true ./$(TEST_DIR)/run_benchmarks.sh
+
+# Run unit benchmarks only
+.PHONY: benchmark-unit
+benchmark-unit:
+	@echo "Running unit benchmarks..."
+	$(GO) test -bench=. -benchmem ./test/benchmark/
+
+# Run baseline performance test
+.PHONY: benchmark-baseline
+benchmark-baseline:
+	@echo "Running baseline performance test..."
+	$(GO) test -timeout=120s -v ./test/benchmark/ -run TestBaselinePerformance
+
 # Check system requirements
 .PHONY: check-system
 check-system:

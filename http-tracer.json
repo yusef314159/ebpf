@@ -1,0 +1,95 @@
+{
+  "general": {
+    "enabled": true,
+    "log_level": "info",
+    "process_name": "http-tracer",
+    "pid_file": "/var/run/http-tracer.pid",
+    "graceful_shutdown": true
+  },
+  "filtering": {
+    "enabled": true,
+    "process_filters": {
+      "include_pids": null,
+      "exclude_pids": null,
+      "include_process_names": null,
+      "exclude_process_names": null,
+      "min_pid": 1
+    },
+    "network_filters": {
+      "include_ports": null,
+      "exclude_ports": null,
+      "include_ips": null,
+      "exclude_ips": null,
+      "localhost_only": false
+    },
+    "http_filters": {
+      "include_methods": null,
+      "exclude_methods": null,
+      "include_path_patterns": null,
+      "exclude_path_patterns": null,
+      "include_status_codes": null,
+      "exclude_status_codes": null,
+      "min_payload_size": 1,
+      "max_payload_size": 4096
+    },
+    "event_type_filters": {
+      "enable_read_events": true,
+      "enable_write_events": true,
+      "enable_connect_events": true,
+      "enable_accept_events": true
+    }
+  },
+  "sampling": {
+    "enabled": false,
+    "rate": 1,
+    "strategy": "random",
+    "max_events_per_second": 10000,
+    "burst_size": 100
+  },
+  "output": {
+    "format": "json",
+    "destination": "stdout",
+    "file": {
+      "path": "/var/log/http-tracer.log",
+      "rotation": true,
+      "max_size_mb": 100,
+      "max_files": 10,
+      "permissions": "0644"
+    },
+    "network": {
+      "protocol": "tcp",
+      "address": "localhost:9999",
+      "timeout_seconds": 30,
+      "tls": false,
+      "tls_cert_file": "",
+      "tls_key_file": ""
+    },
+    "buffer": {
+      "size": 1000,
+      "flush_interval_seconds": 5,
+      "compression": false
+    },
+    "include_fields": null,
+    "exclude_fields": null
+  },
+  "performance": {
+    "ring_buffer_size": 1048576,
+    "worker_threads": 4,
+    "batch_size": 100,
+    "cpu_affinity": false,
+    "cpu_cores": null,
+    "max_memory_mb": 100,
+    "memory_profiling": false
+  },
+  "security": {
+    "drop_privileges": false,
+    "user": "nobody",
+    "group": "nobody",
+    "seccomp": false,
+    "capability_restrictions": false,
+    "required_capabilities": [
+      "CAP_SYS_ADMIN",
+      "CAP_BPF"
+    ]
+  }
+}
