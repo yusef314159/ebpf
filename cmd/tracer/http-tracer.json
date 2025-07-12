@@ -1,0 +1,271 @@
+{
+  "general": {
+    "enabled": true,
+    "log_level": "info",
+    "process_name": "http-tracer",
+    "pid_file": "/var/run/http-tracer.pid",
+    "graceful_shutdown": true,
+    "enable_symbol_resolution": false,
+    "enable_async_tracking": false,
+    "enable_multi_protocol": false,
+    "enable_debug_info": false,
+    "btf_path": "/sys/kernel/btf/vmlinux",
+    "max_async_contexts": 10000,
+    "async_context_timeout": 300,
+    "enable_grpc": false,
+    "enable_websocket": false,
+    "enable_tcp": false,
+    "enable_performance_optimization": false,
+    "enable_cpu_profiling": false,
+    "enable_memory_profiling": false,
+    "enable_event_pooling": false,
+    "max_event_pool_size": 10000,
+    "enable_runtime_integration": false,
+    "enable_jvm_tracing": false,
+    "enable_python_tracing": false,
+    "enable_v8_tracing": false,
+    "runtime_event_buffer_size": 50000,
+    "enable_container_integration": false,
+    "enable_container_discovery": false,
+    "enable_kubernetes_integration": false,
+    "container_discovery_interval": 30,
+    "enable_load_management": false,
+    "max_events_per_second": 100000,
+    "min_sampling_rate": 0.01,
+    "max_sampling_rate": 1,
+    "enable_enhanced_security": false,
+    "enable_selinux": false,
+    "enable_apparmor": false,
+    "enable_seccomp": false
+  },
+  "filtering": {
+    "enabled": true,
+    "process_filters": {
+      "include_pids": null,
+      "exclude_pids": null,
+      "include_process_names": null,
+      "exclude_process_names": null,
+      "min_pid": 1
+    },
+    "network_filters": {
+      "include_ports": null,
+      "exclude_ports": null,
+      "include_ips": null,
+      "exclude_ips": null,
+      "localhost_only": false
+    },
+    "http_filters": {
+      "include_methods": null,
+      "exclude_methods": null,
+      "include_path_patterns": null,
+      "exclude_path_patterns": null,
+      "include_status_codes": null,
+      "exclude_status_codes": null,
+      "min_payload_size": 1,
+      "max_payload_size": 4096
+    },
+    "event_type_filters": {
+      "enable_read_events": true,
+      "enable_write_events": true,
+      "enable_connect_events": true,
+      "enable_accept_events": true
+    }
+  },
+  "sampling": {
+    "enabled": false,
+    "rate": 1,
+    "strategy": "random",
+    "max_events_per_second": 10000,
+    "burst_size": 100
+  },
+  "output": {
+    "format": "json",
+    "destination": "stdout",
+    "file": {
+      "path": "/var/log/http-tracer.log",
+      "rotation": true,
+      "max_size_mb": 100,
+      "max_files": 10,
+      "permissions": "0644"
+    },
+    "network": {
+      "protocol": "tcp",
+      "address": "localhost:9999",
+      "timeout_seconds": 30,
+      "tls": false,
+      "tls_cert_file": "",
+      "tls_key_file": ""
+    },
+    "buffer": {
+      "size": 1000,
+      "flush_interval_seconds": 5,
+      "compression": false
+    },
+    "include_fields": null,
+    "exclude_fields": null,
+    "enable_distributed_tracing": false,
+    "distributed_tracing": {
+      "enable_opentelemetry": false,
+      "otlp_exporter": "otlp",
+      "otlp_endpoint": "localhost:4317",
+      "enable_jaeger": false,
+      "jaeger_agent_endpoint": "localhost:6831",
+      "jaeger_collector_url": "http://localhost:14268/api/traces",
+      "service_name": "ebpf-http-tracer",
+      "environment": "development",
+      "sampling_ratio": 1,
+      "batch_size": 512,
+      "batch_timeout_ms": 5000,
+      "max_queue_size": 2048
+    },
+    "enable_analytics": false,
+    "analytics": {
+      "buffer_size": 10000,
+      "worker_threads": 4,
+      "flush_interval_seconds": 10,
+      "window_sizes": [
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+      ],
+      "retention_hours": 24,
+      "enabled_metrics": [
+        "http_requests_total",
+        "http_request_duration",
+        "http_response_size",
+        "network_bytes_total",
+        "error_rate"
+      ],
+      "enable_alerting": false,
+      "alert_rules": [],
+      "enable_dashboard": true,
+      "dashboard_port": 8080,
+      "metrics_endpoint": "/metrics"
+    },
+    "enable_multiple_outputs": false,
+    "outputs": null
+  },
+  "performance": {
+    "ring_buffer_size": 1048576,
+    "worker_threads": 4,
+    "batch_size": 100,
+    "cpu_affinity": false,
+    "cpu_cores": null,
+    "max_memory_mb": 100,
+    "memory_profiling": false
+  },
+  "security": {
+    "drop_privileges": false,
+    "user": "nobody",
+    "group": "nobody",
+    "seccomp": false,
+    "capability_restrictions": false,
+    "required_capabilities": [
+      "CAP_SYS_ADMIN",
+      "CAP_BPF"
+    ]
+  },
+  "compliance_security": {
+    "enable_compliance": false,
+    "compliance_frameworks": [],
+    "enable_data_filtering": false,
+    "pii_detection": {
+      "enable_detection": false,
+      "redaction_mode": "mask",
+      "pii_types": [
+        "email",
+        "ssn",
+        "credit_card",
+        "phone"
+      ],
+      "custom_patterns": [],
+      "sensitivity_level": "medium"
+    },
+    "data_classification": {
+      "enable_classification": false,
+      "classification_levels": [
+        {
+          "level": "public",
+          "description": "Public information",
+          "patterns": [
+            "public"
+          ],
+          "actions": [
+            "log"
+          ]
+        },
+        {
+          "level": "internal",
+          "description": "Internal use only",
+          "patterns": [
+            "internal"
+          ],
+          "actions": [
+            "log",
+            "audit"
+          ]
+        },
+        {
+          "level": "confidential",
+          "description": "Confidential information",
+          "patterns": [
+            "confidential",
+            "secret"
+          ],
+          "actions": [
+            "log",
+            "audit",
+            "encrypt"
+          ]
+        }
+      ],
+      "auto_classification": false,
+      "default_level": "internal"
+    },
+    "enable_audit_logging": false,
+    "audit_config": {
+      "audit_level": "basic",
+      "log_destination": "file",
+      "log_format": "json",
+      "include_payloads": false,
+      "tamper_protection": false,
+      "digital_signing": false,
+      "retention_days": 90,
+      "encrypt_logs": false,
+      "remote_endpoints": []
+    },
+    "enable_encryption": false,
+    "encryption_config": {
+      "algorithm": "AES-256-GCM",
+      "key_rotation_days": 30,
+      "key_derivation": "PBKDF2",
+      "encrypt_in_transit": false,
+      "encrypt_at_rest": false,
+      "key_management_url": ""
+    },
+    "enable_access_control": false,
+    "access_control_config": {
+      "authentication_mode": "none",
+      "authorization_mode": "rbac",
+      "roles": [],
+      "policies": [],
+      "session_timeout_minutes": 480,
+      "max_sessions": 10
+    },
+    "enable_retention_policy": false,
+    "retention_config": {
+      "default_retention_days": 30,
+      "data_type_retention_days": {
+        "audit_log": 365,
+        "error_event": 90,
+        "http_request": 7,
+        "http_response": 7
+      },
+      "auto_purge": false,
+      "purge_schedule": "0 2 * * *",
+      "archive_before_purge": false,
+      "archive_location": "/var/lib/ebpf-tracer/archive"
+    }
+  }
+}
