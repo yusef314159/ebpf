@@ -1,0 +1,135 @@
+# Universal eBPF Tracer Configuration for Vector eBPF Platform Integration
+# This configuration enables Unix socket output for communication with Vector eBPF Platform
+
+general:
+  enabled: true
+  log_level: "info"
+  process_name: "ebpf-tracer"
+  pid_file: "/var/run/ebpf-tracer.pid"
+  
+  # Enable advanced features
+  enable_symbol_resolution: true
+  enable_async_tracking: true
+  enable_multi_protocol: true
+  enable_performance_optimization: true
+  
+  # Performance settings
+  max_events_per_second: 10000
+  min_sampling_rate: 0.1
+  max_sampling_rate: 1.0
+
+filtering:
+  # Enable filtering to reduce noise
+  enable_filtering: true
+  
+  # Process filtering
+  include_processes: []
+  exclude_processes: ["systemd", "kthreadd", "ksoftirqd"]
+  
+  # Port filtering - focus on common application ports
+  include_ports: [80, 443, 8080, 8443, 3000, 5432, 6379, 9200]
+  exclude_ports: [22, 53]
+  
+  # Protocol filtering
+  include_protocols: ["HTTP", "HTTPS", "TCP", "UDP"]
+  
+  # Path filtering for HTTP requests
+  exclude_paths: ["/health", "/metrics", "/favicon.ico"]
+
+sampling:
+  # Enable adaptive sampling
+  enable_sampling: true
+  sampling_rate: 0.5
+  adaptive_sampling: true
+  
+  # Burst sampling for high-traffic scenarios
+  enable_burst_sampling: true
+  burst_threshold: 1000
+  burst_sampling_rate: 0.1
+
+output:
+  # Enable multiple outputs system
+  enable_multiple_outputs: true
+  
+  # Configure multiple output adapters
+  outputs:
+    # Primary output: Unix socket for Vector eBPF Platform
+    - name: "vector_platform"
+      type: "unix_socket"
+      enabled: true
+      config:
+        socket_path: "/var/run/ebpf-tracer.sock"
+        socket_permissions: 0666
+        remove_existing: true
+        keep_alive: true
+        keep_alive_interval: "30s"
+        connect_timeout: "10s"
+        write_timeout: "5s"
+    
+    # Backup output: stdout for debugging
+    - name: "debug_stdout"
+      type: "stdout"
+      enabled: true
+      config:
+        pretty_print: false
+        add_timestamp: true
+        timestamp_format: "2006-01-02T15:04:05.000Z07:00"
+  
+  # Legacy output settings (for backward compatibility)
+  format: "json"
+  destination: "stdout"
+  
+  # Field filtering
+  include_fields: [
+    "timestamp", "event_type", "pid", "comm", "src_ip", "dst_ip", 
+    "src_port", "dst_port", "method", "path", "status_code", 
+    "payload_len", "latency_ns", "trace_id", "span_id"
+  ]
+  
+  # Distributed tracing
+  enable_distributed_tracing: false
+  
+  # Analytics
+  enable_analytics: false
+
+performance:
+  # Ring buffer settings
+  ring_buffer_size: 65536
+  ring_buffer_pages: 64
+  
+  # Event processing
+  max_events_per_batch: 100
+  batch_timeout_ms: 100
+  
+  # Memory management
+  enable_memory_optimization: true
+  max_memory_usage_mb: 512
+  
+  # CPU optimization
+  enable_cpu_optimization: true
+  max_cpu_usage_percent: 20
+
+security:
+  # Basic security settings
+  enable_security: true
+  drop_privileges: true
+  run_as_user: "ebpf-tracer"
+  run_as_group: "ebpf-tracer"
+  
+  # Capability management
+  required_capabilities: ["CAP_SYS_ADMIN", "CAP_BPF", "CAP_PERFMON"]
+  
+  # LSM integration
+  enable_lsm: false
+  enable_seccomp: false
+  enable_apparmor: false
+  enable_selinux: false
+
+compliance_security:
+  # Disable compliance features for basic setup
+  enable_compliance: false
+  enable_data_filtering: false
+  enable_audit_logging: false
+  enable_encryption: false
+  enable_access_control: false
+  enable_retention_policy: false
