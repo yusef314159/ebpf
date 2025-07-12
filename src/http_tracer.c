@@ -52,7 +52,7 @@ struct trace_context {
     __u64 parent_span_id;     // Parent span ID (0 if root)
     __u8 trace_flags;         // Trace flags (sampled, etc.)
     __u8 trace_state_len;     // Length of trace state
-    char trace_state[32];     // Trace state for vendor-specific data (reduced)
+    char trace_state[16];     // Trace state for vendor-specific data (optimized)
 };
 
 // Enhanced request context for advanced correlation
