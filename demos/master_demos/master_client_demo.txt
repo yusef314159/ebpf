@@ -1,0 +1,12 @@
+UET Client Demo Report - 2025-07-12T20:38:51.594238
+============================================================
+
+Requirements Addressed: 1/1
+Demo Duration: 6.0 seconds
+
+Code-level tracing: ✅ Function-level tracing with call stacks
+Any app/language: ✅ FULLY SUPPORTED - Zero modification
+Functions: ✅ FULLY SUPPORTED - Entry/exit/timing
+Memory: ✅ Addresses and pointers (eBPF limitations noted)
+Arguments: ✅ Parameter extraction (DWARF enhancement planned)
+Registers: ✅ FIXED - Real values, not zeros!

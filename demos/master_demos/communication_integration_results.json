@@ -1,0 +1,63 @@
+{
+  "demo_timestamp": "2025-07-12T13:31:45.818505+00:00",
+  "demo_duration_seconds": 3.5108296871185303,
+  "total_integrations": 7,
+  "successful_integrations": 7,
+  "success_rate": 1.0,
+  "integration_results": [
+    {
+      "integration_type": "OTLP Export",
+      "status": "success",
+      "spans_exported": 3,
+      "endpoint": "http://otel-collector:4317",
+      "protocol": "grpc"
+    },
+    {
+      "integration_type": "Jaeger Tracing",
+      "status": "success",
+      "traces_generated": 5,
+      "unique_traces": 5,
+      "agent_endpoint": "jaeger-agent:6831"
+    },
+    {
+      "integration_type": "Kafka Pipeline",
+      "status": "success",
+      "messages_produced": 8,
+      "batches": 3,
+      "topic": "uet-telemetry",
+      "partitions": 3
+    },
+    {
+      "integration_type": "NATS Streaming",
+      "status": "success",
+      "messages_streamed": 8,
+      "subjects": 8,
+      "cluster_id": "uet-cluster"
+    },
+    {
+      "integration_type": "File System Export",
+      "status": "success",
+      "files_created": 8,
+      "total_records": 8,
+      "total_size_bytes": 3348,
+      "output_directory": "/var/log/uet"
+    },
+    {
+      "integration_type": "Kubernetes Deployment",
+      "status": "success",
+      "pods_deployed": 3,
+      "services_created": 2,
+      "namespace": "uet-system",
+      "helm_chart": "uet/universal-ebpf-tracer"
+    },
+    {
+      "integration_type": "CI/CD Pipeline",
+      "status": "success",
+      "test_combinations": 15,
+      "btf_success_rate": 0.7333333333333333,
+      "core_success_rate": 0.8666666666666667,
+      "pipeline": "GitHub Actions"
+    }
+  ],
+  "telemetry_samples": 8
+}

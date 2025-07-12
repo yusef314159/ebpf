@@ -1,0 +1,347 @@
+[
+  {
+    "timestamp": "2025-07-13T02:14:04.567194",
+    "event_type": "function_arguments",
+    "function_name": "traced_function_simple",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 1,
+    "arguments": {
+      "positional": [
+        {
+          "position": 0,
+          "type": "int",
+          "size": 8,
+          "value": "123",
+          "address": "0xb38368",
+          "is_mutable": false
+        },
+        {
+          "position": 1,
+          "type": "str",
+          "size": 8,
+          "value": "'john doe'",
+          "address": "0x7219fc5ad0f0",
+          "is_mutable": false
+        }
+      ],
+      "keyword": {
+        "active": {
+          "type": "bool",
+          "size": 8,
+          "value": "True",
+          "address": "0xa2a360",
+          "is_mutable": false
+        }
+      },
+      "total_args": 3
+    },
+    "return_value": null
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567257",
+    "event_type": "function_arguments",
+    "function_name": "traced_function_simple",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 1,
+    "arguments": {
+      "positional": [],
+      "keyword": {},
+      "total_args": 0
+    },
+    "return_value": {
+      "type": "dict",
+      "size": 115,
+      "value": "{'user_id': 123, 'display_name': 'John Doe', 'status': 'active', 'created_at': '2025-07-13T02:14:04....",
+      "address": "0x7219fc4a2480"
+    }
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567380",
+    "event_type": "function_arguments",
+    "function_name": "traced_function_complex",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 1,
+    "arguments": {
+      "positional": [
+        {
+          "position": 0,
+          "type": "dict",
+          "size": 150,
+          "value": "{'processing_mode': 'enhanced', 'max_items': 100, 'timeout': 30, 'features': ['validation', 'transfo...",
+          "address": "0x7219fc2be340",
+          "is_mutable": true
+        },
+        {
+          "position": 1,
+          "type": "list",
+          "size": 219,
+          "value": "[{'id': 1, 'name': 'Item 1', 'value': 100}, {'id': 2, 'name': 'Item 2', 'value': 200}, {'id': 3, 'na...",
+          "address": "0x7219fc4a0900",
+          "is_mutable": true
+        }
+      ],
+      "keyword": {
+        "options": {
+          "type": "dict",
+          "size": 60,
+          "value": "{'debug': True, 'verbose': False}",
+          "address": "0x7219fc2db740",
+          "is_mutable": true
+        }
+      },
+      "total_args": 3
+    },
+    "return_value": null
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567428",
+    "event_type": "function_arguments",
+    "function_name": "process_data_item",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 2,
+    "arguments": {
+      "positional": [
+        {
+          "position": 0,
+          "type": "dict",
+          "size": 65,
+          "value": "{'id': 1, 'name': 'Item 1', 'value': 100}",
+          "address": "0x7219fc2db680",
+          "is_mutable": true
+        },
+        {
+          "position": 1,
+          "type": "str",
+          "size": 8,
+          "value": "'enhanced'",
+          "address": "0x7219fc5ac730",
+          "is_mutable": false
+        }
+      ],
+      "keyword": {},
+      "total_args": 2
+    },
+    "return_value": null
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567439",
+    "event_type": "function_arguments",
+    "function_name": "process_data_item",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 2,
+    "arguments": {
+      "positional": [],
+      "keyword": {},
+      "total_args": 0
+    },
+    "return_value": {
+      "type": "dict",
+      "size": 195,
+      "value": "{'id': 1, 'name': 'Item 1', 'value': 100, 'processed': True, 'enhancement_level': 'high', 'metadata'...",
+      "address": "0x7219fc2db780"
+    }
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567532",
+    "event_type": "function_arguments",
+    "function_name": "process_data_item",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 2,
+    "arguments": {
+      "positional": [
+        {
+          "position": 0,
+          "type": "dict",
+          "size": 65,
+          "value": "{'id': 2, 'name': 'Item 2', 'value': 200}",
+          "address": "0x7219fc2db6c0",
+          "is_mutable": true
+        },
+        {
+          "position": 1,
+          "type": "str",
+          "size": 8,
+          "value": "'enhanced'",
+          "address": "0x7219fc5ac730",
+          "is_mutable": false
+        }
+      ],
+      "keyword": {},
+      "total_args": 2
+    },
+    "return_value": null
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567545",
+    "event_type": "function_arguments",
+    "function_name": "process_data_item",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 2,
+    "arguments": {
+      "positional": [],
+      "keyword": {},
+      "total_args": 0
+    },
+    "return_value": {
+      "type": "dict",
+      "size": 195,
+      "value": "{'id': 2, 'name': 'Item 2', 'value': 200, 'processed': True, 'enhancement_level': 'high', 'metadata'...",
+      "address": "0x7219fc2dbc40"
+    }
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567609",
+    "event_type": "function_arguments",
+    "function_name": "process_data_item",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 2,
+    "arguments": {
+      "positional": [
+        {
+          "position": 0,
+          "type": "dict",
+          "size": 65,
+          "value": "{'id': 3, 'name': 'Item 3', 'value': 300}",
+          "address": "0x7219fc2db700",
+          "is_mutable": true
+        },
+        {
+          "position": 1,
+          "type": "str",
+          "size": 8,
+          "value": "'enhanced'",
+          "address": "0x7219fc5ac730",
+          "is_mutable": false
+        }
+      ],
+      "keyword": {},
+      "total_args": 2
+    },
+    "return_value": null
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567622",
+    "event_type": "function_arguments",
+    "function_name": "process_data_item",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 2,
+    "arguments": {
+      "positional": [],
+      "keyword": {},
+      "total_args": 0
+    },
+    "return_value": {
+      "type": "dict",
+      "size": 195,
+      "value": "{'id': 3, 'name': 'Item 3', 'value': 300, 'processed': True, 'enhancement_level': 'high', 'metadata'...",
+      "address": "0x7219fc2e8080"
+    }
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567651",
+    "event_type": "function_arguments",
+    "function_name": "traced_function_complex",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 1,
+    "arguments": {
+      "positional": [],
+      "keyword": {},
+      "total_args": 0
+    },
+    "return_value": {
+      "type": "dict",
+      "size": 856,
+      "value": "{'processed_count': 3, 'items': [{'id': 1, 'name': 'Item 1', 'value': 100, 'processed': True, 'enhan...",
+      "address": "0x7219fc2e8440"
+    }
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567793",
+    "event_type": "function_arguments",
+    "function_name": "traced_function_with_callbacks",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 1,
+    "arguments": {
+      "positional": [
+        {
+          "position": 0,
+          "type": "list",
+          "size": 104,
+          "value": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+          "address": "0x7219fc2e8740",
+          "is_mutable": true
+        },
+        {
+          "position": 1,
+          "type": "function",
+          "size": 64,
+          "value": "<function ArgumentsTracingDemo.demonstrate_arguments_tracing.<locals>.square at 0x7219fc51d940>",
+          "address": "0x7219fc51d940",
+          "is_mutable": false
+        }
+      ],
+      "keyword": {
+        "filter_func": {
+          "type": "function",
+          "size": 64,
+          "value": "<function ArgumentsTracingDemo.demonstrate_arguments_tracing.<locals>.is_even at 0x7219fc2deca0>",
+          "address": "0x7219fc2deca0",
+          "is_mutable": false
+        },
+        "sort": {
+          "type": "bool",
+          "size": 8,
+          "value": "True",
+          "address": "0xa2a360",
+          "is_mutable": false
+        },
+        "unique": {
+          "type": "bool",
+          "size": 8,
+          "value": "False",
+          "address": "0xa2a380",
+          "is_mutable": false
+        },
+        "debug": {
+          "type": "bool",
+          "size": 8,
+          "value": "True",
+          "address": "0xa2a360",
+          "is_mutable": false
+        }
+      },
+      "total_args": 6
+    },
+    "return_value": null
+  },
+  {
+    "timestamp": "2025-07-13T02:14:04.567911",
+    "event_type": "function_arguments",
+    "function_name": "traced_function_with_callbacks",
+    "pid": 12345,
+    "tid": 12346,
+    "call_depth": 1,
+    "arguments": {
+      "positional": [],
+      "keyword": {},
+      "total_args": 0
+    },
+    "return_value": {
+      "type": "list",
+      "size": 64,
+      "value": "[4, 16, 36, 64, 100]",
+      "address": "0x7219fc2e8cc0"
+    }
+  }
+]
