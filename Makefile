@@ -53,9 +53,13 @@ ebpf: $(EBPF_OBJS)
 	@echo "All eBPF programs compiled successfully!"
 
 # Build userspace binary (explicit target)
-.PHONY: build
-build: $(BINARY)
+.PHONY: build-userspace
+build-userspace: $(BINARY)
 	@echo "Userspace binary built successfully: $(BINARY)"
+
+# Alias for build-userspace (for convenience)
+.PHONY: build
+build: build-userspace
 
 # Build Go binary
 $(BINARY): $(EBPF_OBJS) $(GO_MAIN) | $(BUILD_DIR)
@@ -194,7 +198,8 @@ help:
 	@echo ""
 	@echo "  all           - Build the complete project (default)"
 	@echo "  ebpf          - Compile eBPF programs only"
-	@echo "  build         - Build userspace binary only"
+	@echo "  build         - Build userspace binary only (alias for build-userspace)"
+	@echo "  build-userspace - Build userspace binary only"
 	@echo "  deps          - Install Go and Python dependencies"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  clean-all     - Deep clean including Go module cache"
