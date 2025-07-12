@@ -86,3 +86,4 @@ docs/_build/
 *.sock
 /vector-ebpf-platform/
 /ebpf-tracing-github/
+/temp-files/
