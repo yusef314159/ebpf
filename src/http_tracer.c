@@ -83,9 +83,9 @@ struct event_t {
     __u16 dst_port;
     char comm[MAX_COMM_SIZE];
     char method[8];           // GET, POST, etc.
-    char path[32]; // HTTP path (reduced)
+    char path[16]; // HTTP path (further reduced for stack optimization)
     __u32 payload_len;
-    char payload[32]; // Payload (reduced)
+    char payload[16]; // Payload (further reduced for stack optimization)
     __u8 event_type;          // 0=accept, 1=read, 2=connect, 3=write
     __u8 protocol;            // TCP=6, UDP=17
 
