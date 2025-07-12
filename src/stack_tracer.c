@@ -384,9 +384,9 @@ static __always_inline struct stack_event *create_stack_event(struct pt_regs *ct
 }
 
 // Helper function to capture stack trace
-static __always_inline __s32 capture_stack_trace(__u8 stack_type) {
+static __always_inline __s32 capture_stack_trace(struct pt_regs *ctx, __u8 stack_type) {
     __u32 flags = 0;
-    
+
     switch (stack_type) {
         case 0: // kernel stack
             flags = 0;
@@ -398,15 +398,14 @@ static __always_inline __s32 capture_stack_trace(__u8 stack_type) {
             flags = BPF_F_USER_STACK;
             break;
     }
-    
-    struct pt_regs *regs = (struct pt_regs *)bpf_get_current_task();
-    __s32 stack_id = bpf_get_stackid(regs, &stack_traces, flags);
+
+    __s32 stack_id = bpf_get_stackid(ctx, &stack_traces, flags);
 
     // If user stack failed and we want mixed, try kernel stack
     if (stack_id < 0 && stack_type == 2) {
-        stack_id = bpf_get_stackid(regs, &stack_traces, 0);
+        stack_id = bpf_get_stackid(ctx, &stack_traces, 0);
     }
-    
+
     return stack_id;
 }
 
@@ -471,7 +470,7 @@ int trace_function_entry(struct pt_regs *ctx) {
     }
     
     // Capture stack trace
-    __s32 stack_id = capture_stack_trace(0);
+    __s32 stack_id = capture_stack_trace(ctx, 0);
     event->stack_id = stack_id;
     
     // Store entry time for duration calculation
@@ -539,7 +538,7 @@ int trace_user_function_entry(struct pt_regs *ctx) {
     }
     
     // Capture user stack trace
-    __s32 stack_id = capture_stack_trace(1);
+    __s32 stack_id = capture_stack_trace(ctx, 1);
     event->stack_id = stack_id;
     
     // Unwind user stack
@@ -564,7 +563,7 @@ int trace_user_function_exit(struct pt_regs *ctx) {
     }
     
     // Capture user stack trace
-    __s32 stack_id = capture_stack_trace(1);
+    __s32 stack_id = capture_stack_trace(ctx, 1);
     event->stack_id = stack_id;
     
     bpf_ringbuf_submit(event, 0);
@@ -605,8 +604,12 @@ int sample_stack_trace(struct bpf_perf_event_data *ctx) {
         event->instruction_pointer = 0;
         event->stack_pointer = 0;
         event->frame_pointer = 0;
-        // Capture stack trace for sampling
-        __s32 stack_id = capture_stack_trace(2);
+        // Capture stack trace for sampling - use direct bpf_get_stackid for perf_event context
+        __s32 stack_id = bpf_get_stackid(ctx, &stack_traces, BPF_F_USER_STACK);
+        // If user stack failed, try kernel stack
+        if (stack_id < 0) {
+            stack_id = bpf_get_stackid(ctx, &stack_traces, 0);
+        }
         event->stack_id = stack_id;
 
         // Submit the sampling event
@@ -630,7 +633,7 @@ int dwarf_stack_unwind(struct pt_regs *ctx) {
     
     // This would implement DWARF-based stack unwinding
     // For now, we use the standard stack trace mechanism
-    __s32 stack_id = capture_stack_trace(2);
+    __s32 stack_id = capture_stack_trace(ctx, 2);
     event->stack_id = stack_id;
     
     // Enhanced unwinding would parse DWARF debug information
@@ -649,7 +652,7 @@ int detect_potential_deadlock(struct pt_regs *ctx) {
     }
     
     // Capture stack at mutex lock for deadlock analysis
-    __s32 stack_id = capture_stack_trace(0);
+    __s32 stack_id = capture_stack_trace(ctx, 0);
     event->stack_id = stack_id;
     
     // Add metadata for deadlock detection
@@ -668,7 +671,7 @@ int trace_memory_allocation(struct pt_regs *ctx) {
     }
     
     // Capture allocation stack trace
-    __s32 stack_id = capture_stack_trace(0);
+    __s32 stack_id = capture_stack_trace(ctx, 0);
     event->stack_id = stack_id;
     
     // Store allocation size in duration field (repurposed)
@@ -698,7 +701,7 @@ int correlate_http_request(struct pt_regs *ctx) {
     // Capture stack trace for HTTP request handling
     struct stack_event *event = create_stack_event(ctx, 0, 2); // entry, mixed
     if (event) {
-        __s32 stack_id = capture_stack_trace(2);
+        __s32 stack_id = capture_stack_trace(ctx, 2);
         event->stack_id = stack_id;
         event->request_id = request_id;
         

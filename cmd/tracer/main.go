@@ -97,7 +97,6 @@ type JSONEvent struct {
 	EventType       string            `json:"event_type"`
 	EventTypeID     uint8             `json:"event_type_id"`
 	Protocol        string            `json:"protocol,omitempty"`
-	TracerType      string            `json:"tracer_type"`
 
 	// Distributed tracing fields
 	TraceContext    JSONTraceContext  `json:"trace_context,omitempty"`
@@ -105,115 +104,6 @@ type JSONEvent struct {
 	ServiceName     string            `json:"service_name,omitempty"`
 	CorrelationType string            `json:"correlation_type,omitempty"`
 	HopCount        uint8             `json:"hop_count,omitempty"`
-}
-
-// attachTracerPrograms attaches the appropriate eBPF programs based on tracer type
-func attachTracerPrograms(coll *ebpf.Collection, tracerType string) ([]link.Link, error) {
-	switch tracerType {
-	case "stack":
-		return attachStackTracerPrograms(coll)
-	case "http":
-		return attachHTTPTracerPrograms(coll)
-	case "xdp":
-		return attachXDPTracerPrograms(coll)
-	default:
-		return nil, fmt.Errorf("unsupported tracer type: %s", tracerType)
-	}
-}
-
-// attachStackTracerPrograms attaches stack tracer programs (kprobes, uprobes, perf events)
-func attachStackTracerPrograms(coll *ebpf.Collection) ([]link.Link, error) {
-	links := make([]link.Link, 0)
-
-	log.Println("Attaching Stack Tracer programs...")
-
-	// Try to attach available stack tracer programs
-	// Note: Stack tracer typically uses perf events, but cilium/ebpf has limited perf support
-	// For now, we'll look for any available programs in the collection
-
-	programsFound := 0
-	for name, prog := range coll.Programs {
-		log.Printf("Found stack tracer program: %s", name)
-		programsFound++
-
-		// For stack tracer, we typically need manual attachment via perf tools
-		// or specific kprobe/uprobe attachment which requires target functions
-		log.Printf("Program %s loaded but requires manual attachment", name)
-		_ = prog // Use the program variable to avoid unused warning
-	}
-
-	if programsFound == 0 {
-		return nil, fmt.Errorf("no stack tracer programs found in collection")
-	}
-
-	// For stack tracer, we'll return empty links but log success
-	// The actual tracing will happen through the ring buffer events
-	log.Printf("Stack Tracer: %d programs loaded (manual attachment required)", programsFound)
-	log.Println("Note: Stack tracing events will be captured through ring buffer")
-
-	return links, nil
-}
-
-// attachHTTPTracerPrograms attaches HTTP tracer programs (syscall tracepoints)
-func attachHTTPTracerPrograms(coll *ebpf.Collection) ([]link.Link, error) {
-	links := make([]link.Link, 0)
-
-	log.Println("Attaching HTTP Tracer programs...")
-
-	// HTTP tracer syscall tracepoints
-	syscallTracepoints := []struct {
-		group   string
-		name    string
-		program string
-	}{
-		{"syscalls", "sys_enter_accept", "trace_accept_enter"},
-		{"syscalls", "sys_exit_accept", "trace_accept_exit"},
-		{"syscalls", "sys_enter_read", "trace_read_enter"},
-		{"syscalls", "sys_enter_connect", "trace_connect_enter"},
-		{"syscalls", "sys_enter_write", "trace_write_enter"},
-	}
-
-	for _, tp := range syscallTracepoints {
-		if prog, exists := coll.Programs[tp.program]; exists {
-			l, err := link.Tracepoint(tp.group, tp.name, prog, nil)
-			if err != nil {
-				log.Printf("Warning: Failed to attach %s tracepoint: %v", tp.name, err)
-			} else {
-				links = append(links, l)
-				log.Printf("✅ %s tracepoint attached", tp.name)
-			}
-		} else {
-			log.Printf("Warning: Program %s not found in collection", tp.program)
-		}
-	}
-
-	if len(links) == 0 {
-		return nil, fmt.Errorf("no HTTP tracer programs could be attached")
-	}
-
-	log.Printf("HTTP Tracer: %d programs attached successfully", len(links))
-	return links, nil
-}
-
-// attachXDPTracerPrograms attaches XDP tracer programs (network interfaces)
-func attachXDPTracerPrograms(coll *ebpf.Collection) ([]link.Link, error) {
-	links := make([]link.Link, 0)
-
-	log.Println("Attaching XDP Tracer programs...")
-
-	// XDP program attachment (requires network interface)
-	if prog, exists := coll.Programs["xdp_tracer"]; exists {
-		// Note: XDP attachment requires specifying a network interface
-		// For now, we'll skip XDP attachment to avoid interface errors
-		// In production, you'd specify interfaces like "eth0", "lo", etc.
-		log.Printf("XDP tracer program available: %s", prog.String())
-		log.Println("Note: XDP attachment requires network interface specification")
-		log.Println("Use: ip link set dev <interface> xdp obj xdp_tracer.o")
-	}
-
-	// For now, return empty links but don't error (XDP can be attached manually)
-	log.Printf("XDP Tracer: Manual attachment required via ip command")
-	return links, nil
 }
 
 func main() {
@@ -226,14 +116,10 @@ func main() {
 	// Generate default configuration if requested
 	if *generateConfig {
 		defaultConfig := config.DefaultConfig()
-		if err := defaultConfig.SaveConfig("universal-tracer.json"); err != nil {
+		if err := defaultConfig.SaveConfig("http-tracer.json"); err != nil {
 			log.Fatalf("Failed to generate config: %v", err)
 		}
-		fmt.Println("Default configuration saved to universal-tracer.json")
-		fmt.Println("Configuration includes settings for:")
-		fmt.Println("  1. Stack Tracer (Primary) - Deep profiling and stack unwinding")
-		fmt.Println("  2. HTTP Tracer (Secondary) - Application layer protocol tracing")
-		fmt.Println("  3. XDP Tracer (Tertiary) - High-performance network processing")
+		fmt.Println("Default configuration saved to http-tracer.json")
 		return
 	}
 
@@ -464,46 +350,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Load pre-compiled eBPF programs in priority order
-	// 1. Stack Tracer (Primary) - Deep profiling and stack unwinding
-	stackSpec, err := ebpf.LoadCollectionSpec("stack_tracer.o")
+	// Load pre-compiled eBPF program
+	spec, err := ebpf.LoadCollectionSpec("http_tracer.o")
 	if err != nil {
-		log.Printf("Warning: Failed to load stack tracer: %v", err)
-		log.Printf("Continuing without stack tracing capabilities...")
-	}
-
-	// 2. HTTP Tracer (Secondary) - Application layer protocol tracing
-	httpSpec, err := ebpf.LoadCollectionSpec("http_tracer.o")
-	if err != nil {
-		log.Printf("Warning: Failed to load HTTP tracer: %v", err)
-		log.Printf("Continuing without HTTP tracing capabilities...")
-	}
-
-	// 3. XDP Tracer (Tertiary) - High-performance network processing
-	xdpSpec, err := ebpf.LoadCollectionSpec("xdp_tracer.o")
-	if err != nil {
-		log.Printf("Warning: Failed to load XDP tracer: %v", err)
-		log.Printf("Continuing without XDP tracing capabilities...")
-	}
-
-	// Use stack tracer as primary, fallback to HTTP tracer if stack tracer fails
-	var spec *ebpf.CollectionSpec
-	var tracerType string
-
-	if stackSpec != nil {
-		spec = stackSpec
-		tracerType = "stack"
-		log.Println("Using Stack Tracer as primary tracer")
-	} else if httpSpec != nil {
-		spec = httpSpec
-		tracerType = "http"
-		log.Println("Using HTTP Tracer as fallback (stack tracer unavailable)")
-	} else if xdpSpec != nil {
-		spec = xdpSpec
-		tracerType = "xdp"
-		log.Println("Using XDP Tracer as fallback (stack and HTTP tracers unavailable)")
-	} else {
-		log.Fatalf("No eBPF tracers available. Please ensure *.o files are compiled and present.")
+		log.Fatalf("Failed to load eBPF program: %v", err)
 	}
 
 	coll, err := ebpf.NewCollection(spec)
@@ -512,11 +362,43 @@ func main() {
 	}
 	defer coll.Close()
 
-	// Attach tracer-specific programs
-	links, err := attachTracerPrograms(coll, tracerType)
+	// Attach tracepoints
+	links := make([]link.Link, 0)
+	
+	// Accept enter
+	l1, err := link.Tracepoint("syscalls", "sys_enter_accept", coll.Programs["trace_accept_enter"], nil)
 	if err != nil {
-		log.Fatalf("Failed to attach tracer programs: %v", err)
+		log.Fatalf("Failed to attach accept enter tracepoint: %v", err)
 	}
+	links = append(links, l1)
+
+	// Accept exit
+	l2, err := link.Tracepoint("syscalls", "sys_exit_accept", coll.Programs["trace_accept_exit"], nil)
+	if err != nil {
+		log.Fatalf("Failed to attach accept exit tracepoint: %v", err)
+	}
+	links = append(links, l2)
+
+	// Read enter
+	l3, err := link.Tracepoint("syscalls", "sys_enter_read", coll.Programs["trace_read_enter"], nil)
+	if err != nil {
+		log.Fatalf("Failed to attach read enter tracepoint: %v", err)
+	}
+	links = append(links, l3)
+
+	// Connect enter
+	l4, err := link.Tracepoint("syscalls", "sys_enter_connect", coll.Programs["trace_connect_enter"], nil)
+	if err != nil {
+		log.Fatalf("Failed to attach connect enter tracepoint: %v", err)
+	}
+	links = append(links, l4)
+
+	// Write enter
+	l5, err := link.Tracepoint("syscalls", "sys_enter_write", coll.Programs["trace_write_enter"], nil)
+	if err != nil {
+		log.Fatalf("Failed to attach write enter tracepoint: %v", err)
+	}
+	links = append(links, l5)
 
 	// Cleanup on exit
 	defer func() {
@@ -525,8 +407,31 @@ func main() {
 		}
 	}()
 
-	// Open ring buffer
-	rd, err := ringbuf.NewReader(coll.Maps["rb"])
+	// Open ring buffer - use appropriate map name based on tracer type
+	var ringBufMapName string
+	switch tracerType {
+	case "stack":
+		ringBufMapName = "stack_events"
+	case "http":
+		ringBufMapName = "rb"
+	case "xdp":
+		ringBufMapName = "xdp_events" // Assuming XDP tracer uses this name
+	default:
+		ringBufMapName = "rb" // Default fallback
+	}
+
+	// Debug: List all available maps
+	log.Printf("Available maps in %s tracer:", tracerType)
+	for mapName := range coll.Maps {
+		log.Printf("  - %s", mapName)
+	}
+
+	ringBufMap := coll.Maps[ringBufMapName]
+	if ringBufMap == nil {
+		log.Fatalf("Ring buffer map '%s' not found in %s tracer", ringBufMapName, tracerType)
+	}
+
+	rd, err := ringbuf.NewReader(ringBufMap)
 	if err != nil {
 		log.Fatalf("Failed to create ring buffer reader: %v", err)
 	}
@@ -559,21 +464,24 @@ func main() {
 				continue
 			}
 
-			if len(record.RawSample) < int(unsafe.Sizeof(Event{})) {
+			// Process event based on tracer type
+			var jsonEvent JSONEvent
+			switch tracerType {
+			case "stack":
+				jsonEvent, err = processStackEvent(record.RawSample)
+			case "http":
+				jsonEvent, err = processHTTPEvent(record.RawSample)
+			case "xdp":
+				jsonEvent, err = processXDPEvent(record.RawSample)
+			default:
+				log.Printf("Unknown tracer type: %s", tracerType)
 				continue
 			}
 
-			// Parse event
-			var event Event
-			err = binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &event)
 			if err != nil {
-				log.Printf("Error parsing event: %v", err)
+				log.Printf("Error processing %s event: %v", tracerType, err)
 				continue
 			}
-
-			// Convert to JSON-friendly format with tracer type
-			jsonEvent := convertToJSONEvent(event)
-			jsonEvent.TracerType = tracerType
 
 				// Apply configuration-based filtering
 				if shouldFilterEvent(cfg, jsonEvent) {
