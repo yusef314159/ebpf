@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ebpf-tracer
+  namespace: ebpf-tracer
+  labels:
+    app.kubernetes.io/name: ebpf-tracer
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ebpf-tracer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ebpf-tracer
+        app.kubernetes.io/component: monitoring
+        app.kubernetes.io/version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: ebpf-tracer
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      
+      # Security context for privileged access
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
+      
+      # Node selector to ensure eBPF support
+      nodeSelector:
+        kubernetes.io/os: linux
+      
+      # Tolerations to run on all nodes
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      
+      # Init container to check prerequisites
+      initContainers:
+      - name: check-prerequisites
+        image: alpine:3.18
+        command:
+        - sh
+        - -c
+        - |
+          echo "Checking eBPF prerequisites..."
+          
+          # Check if BPF filesystem is mounted
+          if [ ! -d "/host/sys/fs/bpf" ]; then
+            echo "ERROR: BPF filesystem not mounted on host"
+            exit 1
+          fi
+          
+          # Check kernel version
+          KERNEL_VERSION=$(cat /host/proc/version | awk '{print $3}')
+          echo "Kernel version: $KERNEL_VERSION"
+          
+          # Check for required kernel features
+          if [ ! -f "/host/proc/kallsyms" ]; then
+            echo "WARNING: /proc/kallsyms not available"
+          fi
+          
+          echo "Prerequisites check completed"
+        
+        securityContext:
+          privileged: true
+        
+        volumeMounts:
+        - name: host-sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: host-proc
+          mountPath: /host/proc
+          readOnly: true
+      
+      containers:
+      - name: ebpf-tracer
+        image: ghcr.io/your-org/ebpf-tracer:latest
+        imagePullPolicy: Always
+        
+        # Security context with required capabilities
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - SYS_ADMIN
+            - BPF
+            - SYS_RESOURCE
+            - SYS_PTRACE
+            - NET_ADMIN
+        
+        # Environment variables
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        # Volume mounts
+        volumeMounts:
+        - name: config
+          mountPath: /etc/ebpf-tracer
+          readOnly: true
+        - name: scripts
+          mountPath: /scripts
+          readOnly: true
+        - name: host-sys
+          mountPath: /sys
+          readOnly: true
+        - name: host-proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: host-dev
+          mountPath: /host/dev
+          readOnly: true
+        - name: bpf-maps
+          mountPath: /sys/fs/bpf
+        - name: debugfs
+          mountPath: /sys/kernel/debug
+        
+        # Liveness probe
+        livenessProbe:
+          exec:
+            command:
+            - /scripts/health-check.sh
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        # Readiness probe
+        readinessProbe:
+          exec:
+            command:
+            - /scripts/health-check.sh
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Startup probe
+        startupProbe:
+          exec:
+            command:
+            - /scripts/health-check.sh
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 10
+        
+        # Ports
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        - name: api
+          containerPort: 8080
+          protocol: TCP
+      
+      # Volumes
+      volumes:
+      - name: config
+        configMap:
+          name: ebpf-tracer-config
+          defaultMode: 0644
+      - name: scripts
+        configMap:
+          name: ebpf-tracer-scripts
+          defaultMode: 0755
+      - name: host-sys
+        hostPath:
+          path: /sys
+          type: Directory
+      - name: host-proc
+        hostPath:
+          path: /proc
+          type: Directory
+      - name: host-dev
+        hostPath:
+          path: /dev
+          type: Directory
+      - name: bpf-maps
+        hostPath:
+          path: /sys/fs/bpf
+          type: DirectoryOrCreate
+      - name: debugfs
+        hostPath:
+          path: /sys/kernel/debug
+          type: Directory
+      
+      # Update strategy
+      updateStrategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 1
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30

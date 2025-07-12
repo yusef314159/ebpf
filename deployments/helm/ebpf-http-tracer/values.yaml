@@ -1,0 +1,287 @@
+# Default values for ebpf-http-tracer
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Image configuration
+image:
+  repository: ebpf-http-tracer
+  tag: "latest"
+  pullPolicy: Always
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# RBAC configuration
+rbac:
+  create: true
+
+# DaemonSet configuration
+daemonset:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  
+  # Node selector for targeting specific nodes
+  nodeSelector: {}
+  
+  # Tolerations for running on all nodes
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  
+  # Affinity rules
+  affinity: {}
+
+# Container configuration
+container:
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - SYS_ADMIN
+        - SYS_RESOURCE
+        - SYS_PTRACE
+        - NET_ADMIN
+        - NET_RAW
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  # Environment variables
+  env:
+    LOG_LEVEL: "info"
+    ENABLE_DISTRIBUTED_TRACING: "true"
+    ENABLE_ANALYTICS: "true"
+    ANALYTICS_BUFFER_SIZE: "50000"
+    ANALYTICS_WORKER_THREADS: "8"
+    ANALYTICS_DASHBOARD_PORT: "8080"
+
+# Service configuration
+service:
+  type: ClusterIP
+  dashboard:
+    port: 8080
+    targetPort: 8080
+  metrics:
+    port: 9090
+    targetPort: 9090
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ebpf-tracer.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Configuration
+config:
+  # Tracing configuration
+  tracing:
+    enabled: true
+    samplingRatio: 0.1
+    jaegerCollectorUrl: "http://jaeger-collector:14268/api/traces"
+    otlpEndpoint: "jaeger-collector:14250"
+  
+  # Analytics configuration
+  analytics:
+    enabled: true
+    bufferSize: 50000
+    workerThreads: 8
+    flushIntervalSeconds: 10
+    windowSizes:
+      - "1m"
+      - "5m"
+      - "15m"
+      - "1h"
+    retentionHours: 24
+    enabledMetrics:
+      - "http_requests_total"
+      - "http_request_duration"
+      - "http_response_size"
+      - "network_bytes_total"
+      - "error_rate"
+    
+    # Alerting configuration
+    alerting:
+      enabled: true
+      rules:
+        - name: "high_error_rate"
+          metric: "http_errors_total_rate"
+          condition: "gt"
+          threshold: 10.0
+          durationSeconds: 300
+          labels:
+            severity: "warning"
+          annotations:
+            description: "High HTTP error rate detected"
+        - name: "high_latency"
+          metric: "http_request_duration_histogram_p95"
+          condition: "gt"
+          threshold: 1.0
+          durationSeconds: 180
+          labels:
+            severity: "critical"
+          annotations:
+            description: "High latency detected"
+    
+    # Dashboard configuration
+    dashboard:
+      enabled: true
+      port: 8080
+      metricsEndpoint: "/metrics"
+  
+  # Filtering configuration
+  filtering:
+    enablePidFilter: false
+    enableProcessFilter: false
+    enableNetworkFilter: false
+    enableHttpFilter: true
+    httpFilters:
+      methods:
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "DELETE"
+        - "PATCH"
+      statusCodes: []
+      minPayloadSize: 0
+      maxPayloadSize: 0
+
+# Monitoring stack configuration
+monitoring:
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+      labels: {}
+      annotations: {}
+  
+  # Grafana dashboards
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
+# Jaeger configuration
+jaeger:
+  enabled: true
+  allInOne:
+    enabled: true
+    image:
+      repository: jaegertracing/all-in-one
+      tag: "1.50"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Persistence configuration
+persistence:
+  enabled: false
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Horizontal Pod Autoscaler (not applicable for DaemonSet)
+autoscaling:
+  enabled: false
+
+# Network policies
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+
+# Pod security policy
+podSecurityPolicy:
+  enabled: false
+
+# Additional labels and annotations
+labels: {}
+annotations: {}
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+# Pod labels
+podLabels: {}
+
+# Lifecycle hooks
+lifecycle: {}
+
+# Init containers
+initContainers: []
+
+# Sidecar containers
+sidecars: []
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []
+
+# Extra environment variables
+extraEnv: []
+
+# Extra environment variables from ConfigMap or Secret
+extraEnvFrom: []
+
+# Priority class name
+priorityClassName: ""
+
+# Runtime class name
+runtimeClassName: ""
+
+# DNS configuration
+dnsConfig: {}
+
+# DNS policy
+dnsPolicy: ClusterFirstWithHostNet
+
+# Host network
+hostNetwork: true
+
+# Host PID
+hostPID: true
+
+# Termination grace period
+terminationGracePeriodSeconds: 30

@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "ebpf-http-tracer.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ebpf-http-tracer.labels" . | nindent 4 }}
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ebpf-http-tracer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ebpf-http-tracer.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "ebpf-http-tracer.serviceAccountName" . }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      hostPID: {{ .Values.hostPID }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.daemonset.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.daemonset.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- with .Values.container.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: HTTP_TRACER_LOG_LEVEL
+          value: {{ .Values.container.env.LOG_LEVEL | quote }}
+        - name: HTTP_TRACER_ENABLE_DISTRIBUTED_TRACING
+          value: {{ .Values.container.env.ENABLE_DISTRIBUTED_TRACING | quote }}
+        - name: HTTP_TRACER_ENABLE_ANALYTICS
+          value: {{ .Values.container.env.ENABLE_ANALYTICS | quote }}
+        - name: HTTP_TRACER_ANALYTICS_BUFFER_SIZE
+          value: {{ .Values.container.env.ANALYTICS_BUFFER_SIZE | quote }}
+        - name: HTTP_TRACER_ANALYTICS_WORKER_THREADS
+          value: {{ .Values.container.env.ANALYTICS_WORKER_THREADS | quote }}
+        - name: HTTP_TRACER_ANALYTICS_DASHBOARD_PORT
+          value: {{ .Values.container.env.ANALYTICS_DASHBOARD_PORT | quote }}
+        {{- if .Values.config.tracing.enabled }}
+        - name: HTTP_TRACER_DISTRIBUTED_TRACING_JAEGER_COLLECTOR_URL
+          value: {{ .Values.config.tracing.jaegerCollectorUrl | quote }}
+        - name: HTTP_TRACER_DISTRIBUTED_TRACING_OTLP_ENDPOINT
+          value: {{ .Values.config.tracing.otlpEndpoint | quote }}
+        - name: HTTP_TRACER_DISTRIBUTED_TRACING_SAMPLING_RATIO
+          value: {{ .Values.config.tracing.samplingRatio | quote }}
+        {{- end }}
+        {{- with .Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.extraEnvFrom }}
+        envFrom:
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        ports:
+        - name: dashboard
+          containerPort: {{ .Values.service.dashboard.targetPort }}
+          hostPort: {{ .Values.service.dashboard.targetPort }}
+          protocol: TCP
+        - name: metrics
+          containerPort: {{ .Values.service.metrics.targetPort }}
+          hostPort: {{ .Values.service.metrics.targetPort }}
+          protocol: TCP
+        {{- with .Values.container.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: bpf
+          mountPath: /sys/fs/bpf
+          mountPropagation: Bidirectional
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: logs
+          mountPath: /app/logs
+        {{- with .Values.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: dashboard
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: dashboard
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        {{- with .Values.lifecycle }}
+        lifecycle:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.sidecars }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+          type: Directory
+      - name: sys
+        hostPath:
+          path: /sys
+          type: Directory
+      - name: bpf
+        hostPath:
+          path: /sys/fs/bpf
+          type: DirectoryOrCreate
+      - name: config
+        configMap:
+          name: {{ include "ebpf-http-tracer.fullname" . }}-config
+      - name: logs
+        hostPath:
+          path: /var/log/ebpf-tracer
+          type: DirectoryOrCreate
+      {{- with .Values.extraVolumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  updateStrategy:
+    {{- toYaml .Values.daemonset.updateStrategy | nindent 4 }}

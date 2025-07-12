@@ -1,0 +1,269 @@
+# Default values for ebpf-tracer
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: your-org/ebpf-tracer
+  tag: "latest"
+  pullPolicy: Always
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC configuration
+rbac:
+  create: true
+  rules: []
+
+# Security context
+securityContext:
+  privileged: true
+  capabilities:
+    add:
+      - SYS_ADMIN
+      - BPF
+      - SYS_RESOURCE
+      - SYS_PTRACE
+      - NET_ADMIN
+
+# Pod security context
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+
+# Node selection
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations for running on all nodes
+tolerations:
+  - operator: Exists
+    effect: NoSchedule
+  - operator: Exists
+    effect: NoExecute
+
+# Affinity rules
+affinity: {}
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "500m"
+
+# Probes configuration
+probes:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startup:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 10
+
+# Service configuration
+service:
+  type: ClusterIP
+  clusterIP: None  # Headless service
+  ports:
+    metrics:
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    api:
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+  prometheusRule:
+    enabled: true
+
+# Network policy
+networkPolicy:
+  enabled: true
+  ingress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+      - namespaceSelector:
+          matchLabels:
+            name: kube-system
+  egress:
+    enabled: true
+    to: []
+
+# Configuration
+config:
+  general:
+    enabled: true
+    log_level: "info"
+    process_name: "ebpf-tracer"
+    graceful_shutdown: true
+
+  filtering:
+    enabled: true
+    process_filters:
+      min_pid: 1
+      max_pid: 65535
+      include_processes: []
+      exclude_processes: ["systemd", "kthreadd", "ksoftirqd", "migration"]
+
+  sampling:
+    enabled: true
+    strategy: "adaptive"
+    rate: 0.1
+    max_events_per_second: 1000
+    burst_limit: 5000
+
+  output:
+    format: "json"
+    destination: "stdout"
+    buffer_size: 1024
+    flush_interval: "5s"
+
+  performance:
+    ring_buffer_size: 262144
+    worker_threads: 4
+    batch_size: 100
+    memory_limit: "100MB"
+    cpu_limit: "500m"
+
+  security:
+    drop_privileges: false
+    user: "ebpf"
+    group: "ebpf"
+    required_capabilities: ["CAP_SYS_ADMIN", "CAP_BPF"]
+
+  # Distributed tracing
+  tracing:
+    enabled: true
+    service_name: "ebpf-tracer"
+    service_version: "1.0.0"
+    environment: "kubernetes"
+    
+    opentelemetry:
+      enabled: true
+      endpoint: "http://jaeger-collector:14268/api/traces"
+      sampling_ratio: 0.1
+      batch_timeout: "5s"
+      batch_size: 512
+      max_queue_size: 2048
+
+  # Analytics
+  analytics:
+    enabled: true
+    buffer_size: 10000
+    flush_interval: "10s"
+    
+    processors:
+      - name: "http_metrics"
+        enabled: true
+        config:
+          track_status_codes: true
+          track_methods: true
+          track_paths: true
+          
+      - name: "time_series"
+        enabled: true
+        config:
+          window_size: "1m"
+          retention_period: "24h"
+
+  # Security and compliance
+  compliance_security:
+    enable_compliance: false
+    enable_data_filtering: false
+    enable_audit_logging: false
+    enable_encryption: false
+    enable_access_control: false
+    enable_retention_policy: false
+
+# Volume mounts
+volumeMounts:
+  hostSys: true
+  hostProc: true
+  hostDev: true
+  bpfMaps: true
+  debugfs: true
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# External dependencies
+prometheus:
+  enabled: false
+  
+jaeger:
+  enabled: false
+
+# Custom annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+# Custom labels
+podLabels: {}
+
+# Environment variables
+env: []
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []
+
+# Init containers
+initContainers:
+  checkPrerequisites:
+    enabled: true
+    image:
+      repository: alpine
+      tag: "3.18"
+      pullPolicy: IfNotPresent
+
+# Sidecar containers
+sidecars: []

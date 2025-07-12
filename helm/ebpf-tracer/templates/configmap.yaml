@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ebpf-tracer.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ebpf-tracer.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    {{- toYaml .Values.config | nindent 4 }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ebpf-tracer.fullname" . }}-scripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ebpf-tracer.labels" . | nindent 4 }}
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+    set -e
+    
+    echo "Starting eBPF Tracer in Kubernetes..."
+    echo "Node: $NODE_NAME"
+    echo "Pod: $POD_NAME"
+    echo "Namespace: $POD_NAMESPACE"
+    echo "Release: {{ .Release.Name }}"
+    echo "Chart: {{ .Chart.Name }}-{{ .Chart.Version }}"
+    
+    # Check for required capabilities
+    if command -v capsh >/dev/null 2>&1; then
+        if ! capsh --print | grep -q "cap_sys_admin"; then
+            echo "WARNING: CAP_SYS_ADMIN capability not found"
+        fi
+        
+        if ! capsh --print | grep -q "cap_bpf"; then
+            echo "WARNING: CAP_BPF capability not found"
+        fi
+    else
+        echo "WARNING: capsh not available, cannot check capabilities"
+    fi
+    
+    # Check if eBPF is supported
+    if [ ! -d "/sys/fs/bpf" ]; then
+        echo "ERROR: BPF filesystem not mounted"
+        exit 1
+    fi
+    
+    # Check kernel version
+    if [ -f "/host/proc/version" ]; then
+        KERNEL_VERSION=$(cat /host/proc/version | awk '{print $3}')
+        echo "Kernel version: $KERNEL_VERSION"
+    fi
+    
+    # Start the tracer
+    echo "Starting eBPF Tracer..."
+    exec /app/tracer --config /etc/ebpf-tracer/config.yaml
+
+  health-check.sh: |
+    #!/bin/sh
+    # Health check script for eBPF Tracer
+    
+    # Check if the main process is running
+    if pgrep -f tracer > /dev/null; then
+        echo "eBPF Tracer process is running"
+        
+        # Additional health checks can be added here
+        # For example, check if metrics endpoint is responding
+        if command -v wget >/dev/null 2>&1; then
+            if wget --quiet --tries=1 --timeout=5 --spider http://localhost:9090/metrics 2>/dev/null; then
+                echo "Metrics endpoint is responding"
+                exit 0
+            else
+                echo "WARNING: Metrics endpoint not responding"
+                # Don't fail the health check for this
+                exit 0
+            fi
+        elif command -v curl >/dev/null 2>&1; then
+            if curl --silent --max-time 5 http://localhost:9090/metrics >/dev/null 2>&1; then
+                echo "Metrics endpoint is responding"
+                exit 0
+            else
+                echo "WARNING: Metrics endpoint not responding"
+                # Don't fail the health check for this
+                exit 0
+            fi
+        else
+            echo "eBPF Tracer is running (no curl/wget available for endpoint check)"
+            exit 0
+        fi
+    else
+        echo "ERROR: eBPF Tracer process is not running"
+        exit 1
+    fi
+
+  debug.sh: |
+    #!/bin/sh
+    # Debug script for troubleshooting eBPF Tracer issues
+    
+    echo "=== eBPF Tracer Debug Information ==="
+    echo "Date: $(date)"
+    echo "Node: $NODE_NAME"
+    echo "Pod: $POD_NAME"
+    echo "Namespace: $POD_NAMESPACE"
+    echo ""
+    
+    echo "=== System Information ==="
+    if [ -f "/host/proc/version" ]; then
+        echo "Kernel: $(cat /host/proc/version)"
+    fi
+    echo "Architecture: $(uname -m)"
+    echo ""
+    
+    echo "=== eBPF Support ==="
+    echo "BPF filesystem: $(ls -la /sys/fs/bpf/ 2>/dev/null || echo 'Not available')"
+    echo "Debug filesystem: $(ls -la /sys/kernel/debug/ 2>/dev/null || echo 'Not available')"
+    echo ""
+    
+    echo "=== Process Information ==="
+    echo "Running processes:"
+    ps aux | grep -E "(tracer|ebpf)" | grep -v grep || echo "No tracer processes found"
+    echo ""
+    
+    echo "=== Network Information ==="
+    echo "Listening ports:"
+    netstat -tlnp 2>/dev/null | grep -E "(8080|9090)" || echo "No listening ports found"
+    echo ""
+    
+    echo "=== Log Information ==="
+    echo "Recent log entries:"
+    if [ -f "/var/log/ebpf-tracer.log" ]; then
+        tail -20 /var/log/ebpf-tracer.log
+    else
+        echo "No log file found"
+    fi
+    echo ""
+    
+    echo "=== Configuration ==="
+    if [ -f "/etc/ebpf-tracer/config.yaml" ]; then
+        echo "Configuration file exists"
+        echo "Size: $(wc -c < /etc/ebpf-tracer/config.yaml) bytes"
+    else
+        echo "Configuration file not found"
+    fi
+    echo ""
+    
+    echo "=== Resource Usage ==="
+    echo "Memory usage:"
+    free -h
+    echo ""
+    echo "Disk usage:"
+    df -h
+    echo ""
+    
+    echo "=== End Debug Information ==="

@@ -1,0 +1,142 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ebpf-tracer-config
+  namespace: ebpf-tracer
+  labels:
+    app.kubernetes.io/name: ebpf-tracer
+    app.kubernetes.io/component: monitoring
+data:
+  config.yaml: |
+    general:
+      enabled: true
+      log_level: "info"
+      process_name: "ebpf-tracer"
+      graceful_shutdown: true
+
+    filtering:
+      enabled: true
+      process_filters:
+        min_pid: 1
+        max_pid: 65535
+        include_processes: []
+        exclude_processes: ["systemd", "kthreadd", "ksoftirqd", "migration"]
+
+    sampling:
+      enabled: true
+      strategy: "adaptive"
+      rate: 0.1
+      max_events_per_second: 1000
+      burst_limit: 5000
+
+    output:
+      format: "json"
+      destination: "stdout"
+      buffer_size: 1024
+      flush_interval: "5s"
+
+    performance:
+      ring_buffer_size: 262144
+      worker_threads: 4
+      batch_size: 100
+      memory_limit: "100MB"
+      cpu_limit: "500m"
+
+    security:
+      drop_privileges: false  # Cannot drop privileges in container
+      user: "ebpf"
+      group: "ebpf"
+      required_capabilities: ["CAP_SYS_ADMIN", "CAP_BPF"]
+
+    # Distributed tracing configuration
+    tracing:
+      enabled: true
+      service_name: "ebpf-tracer"
+      service_version: "1.0.0"
+      environment: "kubernetes"
+      
+      # OpenTelemetry configuration
+      opentelemetry:
+        enabled: true
+        endpoint: "http://jaeger-collector:14268/api/traces"
+        sampling_ratio: 0.1
+        batch_timeout: "5s"
+        batch_size: 512
+        max_queue_size: 2048
+
+    # Analytics configuration
+    analytics:
+      enabled: true
+      buffer_size: 10000
+      flush_interval: "10s"
+      
+      processors:
+        - name: "http_metrics"
+          enabled: true
+          config:
+            track_status_codes: true
+            track_methods: true
+            track_paths: true
+            
+        - name: "time_series"
+          enabled: true
+          config:
+            window_size: "1m"
+            retention_period: "24h"
+
+    # Security and compliance (disabled by default in K8s)
+    compliance_security:
+      enable_compliance: false
+      enable_data_filtering: false
+      enable_audit_logging: false
+      enable_encryption: false
+      enable_access_control: false
+      enable_retention_policy: false
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ebpf-tracer-scripts
+  namespace: ebpf-tracer
+  labels:
+    app.kubernetes.io/name: ebpf-tracer
+    app.kubernetes.io/component: monitoring
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+    set -e
+    
+    echo "Starting eBPF Tracer in Kubernetes..."
+    echo "Node: $NODE_NAME"
+    echo "Pod: $POD_NAME"
+    echo "Namespace: $POD_NAMESPACE"
+    
+    # Check for required capabilities
+    if ! capsh --print | grep -q "cap_sys_admin"; then
+        echo "WARNING: CAP_SYS_ADMIN capability not found"
+    fi
+    
+    if ! capsh --print | grep -q "cap_bpf"; then
+        echo "WARNING: CAP_BPF capability not found"
+    fi
+    
+    # Check if eBPF is supported
+    if [ ! -d "/sys/fs/bpf" ]; then
+        echo "ERROR: BPF filesystem not mounted"
+        exit 1
+    fi
+    
+    # Start the tracer
+    exec /app/tracer --config /etc/ebpf-tracer/config.yaml
+
+  health-check.sh: |
+    #!/bin/sh
+    # Simple health check script
+    if pgrep -f tracer > /dev/null; then
+        echo "eBPF Tracer is running"
+        exit 0
+    else
+        echo "eBPF Tracer is not running"
+        exit 1
+    fi

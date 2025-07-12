@@ -1,0 +1,202 @@
+# AlertManager configuration for eBPF HTTP Tracer
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@company.com'
+  smtp_auth_username: 'alertmanager@company.com'
+  smtp_auth_password: 'password'
+  
+  # Slack configuration
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  
+  # PagerDuty configuration
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Routing configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default'
+  routes:
+  
+  # Critical alerts go to PagerDuty and Slack
+  - match:
+      severity: critical
+    receiver: 'critical-alerts'
+    group_wait: 5s
+    repeat_interval: 30m
+    
+  # Warning alerts go to Slack
+  - match:
+      severity: warning
+    receiver: 'warning-alerts'
+    group_wait: 30s
+    repeat_interval: 2h
+    
+  # Service-specific routing
+  - match:
+      service: ebpf-tracer
+    receiver: 'ebpf-team'
+    
+  - match:
+      service: http-traffic
+    receiver: 'backend-team'
+    
+  - match:
+      service: network-traffic
+    receiver: 'infrastructure-team'
+    
+  - match:
+      service: kubernetes
+    receiver: 'platform-team'
+
+# Inhibition rules to reduce noise
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+    
+  # Inhibit specific alerts when tracer is down
+  - source_match:
+      alertname: 'TracerDown'
+    target_match_re:
+      alertname: '(HighHTTPErrorRate|HighHTTPLatency|HTTPTrafficDrop)'
+    equal: ['instance']
+
+# Receivers configuration
+receivers:
+  # Default receiver
+  - name: 'default'
+    email_configs:
+    - to: 'ops-team@company.com'
+      subject: '[ALERT] {{ .GroupLabels.alertname }}'
+      body: |
+        {{ range .Alerts }}
+        Alert: {{ .Annotations.summary }}
+        Description: {{ .Annotations.description }}
+        Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+        {{ end }}
+
+  # Critical alerts
+  - name: 'critical-alerts'
+    pagerduty_configs:
+    - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+      description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+      details:
+        firing: '{{ .Alerts.Firing | len }}'
+        resolved: '{{ .Alerts.Resolved | len }}'
+        alerts: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    
+    slack_configs:
+    - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      channel: '#alerts-critical'
+      title: '🚨 CRITICAL ALERT'
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Severity:* {{ .Labels.severity }}
+        *Service:* {{ .Labels.service }}
+        {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+        {{ end }}
+      color: 'danger'
+      send_resolved: true
+
+  # Warning alerts
+  - name: 'warning-alerts'
+    slack_configs:
+    - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      channel: '#alerts-warning'
+      title: '⚠️ WARNING ALERT'
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Severity:* {{ .Labels.severity }}
+        *Service:* {{ .Labels.service }}
+        {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+        {{ end }}
+      color: 'warning'
+      send_resolved: true
+
+  # eBPF team alerts
+  - name: 'ebpf-team'
+    email_configs:
+    - to: 'ebpf-team@company.com'
+      subject: '[eBPF TRACER] {{ .GroupLabels.alertname }}'
+      body: |
+        eBPF HTTP Tracer Alert
+        
+        {{ range .Alerts }}
+        Alert: {{ .Annotations.summary }}
+        Description: {{ .Annotations.description }}
+        Severity: {{ .Labels.severity }}
+        Instance: {{ .Labels.instance }}
+        Time: {{ .StartsAt }}
+        {{ if .Annotations.runbook_url }}
+        Runbook: {{ .Annotations.runbook_url }}
+        {{ end }}
+        {{ end }}
+    
+    slack_configs:
+    - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      channel: '#ebpf-team'
+      title: '🔍 eBPF Tracer Alert'
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Instance:* {{ .Labels.instance }}
+        {{ end }}
+      send_resolved: true
+
+  # Backend team alerts
+  - name: 'backend-team'
+    slack_configs:
+    - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      channel: '#backend-team'
+      title: '🌐 HTTP Traffic Alert'
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Service:* {{ .Labels.service }}
+        {{ end }}
+      send_resolved: true
+
+  # Infrastructure team alerts
+  - name: 'infrastructure-team'
+    slack_configs:
+    - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      channel: '#infrastructure'
+      title: '🔧 Infrastructure Alert'
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        {{ end }}
+      send_resolved: true
+
+  # Platform team alerts
+  - name: 'platform-team'
+    slack_configs:
+    - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      channel: '#platform-team'
+      title: '☸️ Kubernetes Alert'
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Namespace:* {{ .Labels.namespace }}
+        *Pod:* {{ .Labels.pod }}
+        {{ end }}
+      send_resolved: true

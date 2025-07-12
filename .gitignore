@@ -84,3 +84,5 @@ docs/_build/
 # Runtime files
 *.pid
 *.sock
+/vector-ebpf-platform/
+/ebpf-tracing-github/

@@ -1,4 +1,4 @@
-# Makefile for eBPF HTTP Tracing PoC
+# Makefile for UnieeBPF Tracing PoC
 
 # Variables
 CLANG ?= clang
@@ -13,16 +13,18 @@ BUILD_DIR := build
 TEST_DIR := test
 
 # Files
-EBPF_SRC := $(SRC_DIR)/http_tracer.c
-EBPF_OBJ := http_tracer.o
+EBPF_SRCS := $(SRC_DIR)/http_tracer.c $(SRC_DIR)/xdp_tracer.c $(SRC_DIR)/stack_tracer.c
+EBPF_OBJS := http_tracer.o xdp_tracer.o stack_tracer.o
 GO_MAIN := $(CMD_DIR)/tracer/main.go
-BINARY := $(BUILD_DIR)/http-tracer
+BINARY := $(BUILD_DIR)/universal-tracer
 
 # eBPF compilation flags
-EBPF_CFLAGS := -O2 -g -Wall -Werror \
+EBPF_CFLAGS := -O2 -g -Wall \
 	-target bpf \
-	-D__TARGET_ARCH_$(ARCH) \
-	-I/usr/include/$(shell uname -m)-linux-gnu
+	-D__TARGET_ARCH_x86 \
+	-I/usr/include/$(shell uname -m)-linux-gnu \
+	-mllvm -bpf-stack-size=8192 \
+	-Wno-pass-failed
 
 # Default target
 .PHONY: all
@@ -32,13 +34,26 @@ all: $(BINARY)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Compile eBPF program
-$(EBPF_OBJ): $(EBPF_SRC)
-	@echo "Compiling eBPF program..."
-	$(CLANG) $(EBPF_CFLAGS) -c $(EBPF_SRC) -o $(EBPF_OBJ)
+# Compile individual eBPF programs
+http_tracer.o: $(SRC_DIR)/http_tracer.c
+	@echo "Compiling HTTP tracer eBPF program..."
+	$(CLANG) $(EBPF_CFLAGS) -c $(SRC_DIR)/http_tracer.c -o http_tracer.o
+
+xdp_tracer.o: $(SRC_DIR)/xdp_tracer.c
+	@echo "Compiling XDP tracer eBPF program..."
+	$(CLANG) $(EBPF_CFLAGS) -c $(SRC_DIR)/xdp_tracer.c -o xdp_tracer.o
+
+stack_tracer.o: $(SRC_DIR)/stack_tracer.c
+	@echo "Compiling Stack tracer eBPF program..."
+	$(CLANG) $(EBPF_CFLAGS) -c $(SRC_DIR)/stack_tracer.c -o stack_tracer.o
+
+# Compile all eBPF programs
+.PHONY: ebpf
+ebpf: $(EBPF_OBJS)
+	@echo "All eBPF programs compiled successfully!"
 
 # Build Go binary
-$(BINARY): $(EBPF_OBJ) $(GO_MAIN) | $(BUILD_DIR)
+$(BINARY): $(EBPF_OBJS) $(GO_MAIN) | $(BUILD_DIR)
 	@echo "Building Go userspace program..."
 	$(GO) mod tidy
 	$(GO) build -o $(BINARY) $(GO_MAIN)
@@ -55,7 +70,7 @@ deps:
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(EBPF_OBJ)
+	rm -f $(EBPF_OBJS)
 	rm -rf $(BUILD_DIR)
 	$(GO) clean
 
@@ -96,7 +111,7 @@ test-unit:
 
 # Run eBPF program tests
 .PHONY: test-ebpf
-test-ebpf: $(EBPF_OBJ)
+test-ebpf: $(EBPF_OBJS)
 	@echo "Running eBPF program tests..."
 	$(GO) test -v ./test/ebpf/...
 
@@ -163,7 +178,7 @@ check-system:
 # Show help
 .PHONY: help
 help:
-	@echo "eBPF HTTP Tracing PoC - Available targets:"
+	@echo "Universal eBPF Tracer - Available targets:"
 	@echo ""
 	@echo "  all           - Build the complete project (default)"
 	@echo "  deps          - Install Go and Python dependencies"

@@ -29,6 +29,9 @@ type Config struct {
 	
 	// Security settings
 	Security SecurityConfig `json:"security" yaml:"security"`
+
+	// Compliance and data security settings
+	ComplianceSecurity ComplianceSecurityConfig `json:"compliance_security" yaml:"compliance_security"`
 }
 
 // GeneralConfig contains general tracer settings
@@ -47,6 +50,56 @@ type GeneralConfig struct {
 	
 	// Enable graceful shutdown
 	GracefulShutdown bool `json:"graceful_shutdown" yaml:"graceful_shutdown"`
+
+	// Advanced features
+	EnableSymbolResolution bool   `json:"enable_symbol_resolution" yaml:"enable_symbol_resolution"`
+	EnableAsyncTracking    bool   `json:"enable_async_tracking" yaml:"enable_async_tracking"`
+	EnableMultiProtocol    bool   `json:"enable_multi_protocol" yaml:"enable_multi_protocol"`
+	EnableDebugInfo        bool   `json:"enable_debug_info" yaml:"enable_debug_info"`
+
+	// BTF/DWARF configuration
+	BTFPath                string `json:"btf_path" yaml:"btf_path"`
+
+	// Async tracking configuration
+	MaxAsyncContexts       int    `json:"max_async_contexts" yaml:"max_async_contexts"`
+	AsyncContextTimeout    int    `json:"async_context_timeout" yaml:"async_context_timeout"`
+
+	// Protocol support
+	EnableGRPC             bool   `json:"enable_grpc" yaml:"enable_grpc"`
+	EnableWebSocket        bool   `json:"enable_websocket" yaml:"enable_websocket"`
+	EnableTCP              bool   `json:"enable_tcp" yaml:"enable_tcp"`
+
+	// Performance optimization
+	EnablePerformanceOptimization bool   `json:"enable_performance_optimization" yaml:"enable_performance_optimization"`
+	EnableCPUProfiling           bool   `json:"enable_cpu_profiling" yaml:"enable_cpu_profiling"`
+	EnableMemoryProfiling        bool   `json:"enable_memory_profiling" yaml:"enable_memory_profiling"`
+	EnableEventPooling           bool   `json:"enable_event_pooling" yaml:"enable_event_pooling"`
+	MaxEventPoolSize             int    `json:"max_event_pool_size" yaml:"max_event_pool_size"`
+
+	// Runtime integration (disabled by default for stability)
+	EnableRuntimeIntegration     bool   `json:"enable_runtime_integration" yaml:"enable_runtime_integration"`
+	EnableJVMTracing             bool   `json:"enable_jvm_tracing" yaml:"enable_jvm_tracing"`
+	EnablePythonTracing          bool   `json:"enable_python_tracing" yaml:"enable_python_tracing"`
+	EnableV8Tracing              bool   `json:"enable_v8_tracing" yaml:"enable_v8_tracing"`
+	RuntimeEventBufferSize       int    `json:"runtime_event_buffer_size" yaml:"runtime_event_buffer_size"`
+
+	// Container integration (disabled by default for stability)
+	EnableContainerIntegration   bool   `json:"enable_container_integration" yaml:"enable_container_integration"`
+	EnableContainerDiscovery     bool   `json:"enable_container_discovery" yaml:"enable_container_discovery"`
+	EnableKubernetesIntegration  bool   `json:"enable_kubernetes_integration" yaml:"enable_kubernetes_integration"`
+	ContainerDiscoveryInterval   int    `json:"container_discovery_interval" yaml:"container_discovery_interval"`
+
+	// Load management (disabled by default for stability)
+	EnableLoadManagement         bool    `json:"enable_load_management" yaml:"enable_load_management"`
+	MaxEventsPerSecond          int     `json:"max_events_per_second" yaml:"max_events_per_second"`
+	MinSamplingRate             float64 `json:"min_sampling_rate" yaml:"min_sampling_rate"`
+	MaxSamplingRate             float64 `json:"max_sampling_rate" yaml:"max_sampling_rate"`
+
+	// Enhanced security (disabled by default for stability)
+	EnableEnhancedSecurity       bool   `json:"enable_enhanced_security" yaml:"enable_enhanced_security"`
+	EnableSELinux                bool   `json:"enable_selinux" yaml:"enable_selinux"`
+	EnableAppArmor               bool   `json:"enable_apparmor" yaml:"enable_apparmor"`
+	EnableSeccomp                bool   `json:"enable_seccomp" yaml:"enable_seccomp"`
 }
 
 // FilteringConfig contains event filtering settings
@@ -167,22 +220,77 @@ type SamplingConfig struct {
 type OutputConfig struct {
 	// Output format (json, text, binary)
 	Format string `json:"format" yaml:"format"`
-	
+
 	// Output destination (stdout, file, syslog, network)
 	Destination string `json:"destination" yaml:"destination"`
-	
+
 	// File output settings
 	File FileOutputConfig `json:"file" yaml:"file"`
-	
+
 	// Network output settings
 	Network NetworkOutputConfig `json:"network" yaml:"network"`
-	
+
 	// Buffer settings
 	Buffer BufferConfig `json:"buffer" yaml:"buffer"`
-	
+
 	// Include/exclude fields
 	IncludeFields []string `json:"include_fields" yaml:"include_fields"`
 	ExcludeFields []string `json:"exclude_fields" yaml:"exclude_fields"`
+
+	// Distributed tracing settings
+	EnableDistributedTracing bool                     `json:"enable_distributed_tracing" yaml:"enable_distributed_tracing"`
+	DistributedTracing       DistributedTracingConfig `json:"distributed_tracing" yaml:"distributed_tracing"`
+
+	// Analytics settings
+	EnableAnalytics bool            `json:"enable_analytics" yaml:"enable_analytics"`
+	Analytics       AnalyticsConfig `json:"analytics" yaml:"analytics"`
+
+	// Multiple output adapters (new system)
+	EnableMultipleOutputs bool                    `json:"enable_multiple_outputs" yaml:"enable_multiple_outputs"`
+	Outputs              []OutputAdapterConfig   `json:"outputs" yaml:"outputs"`
+}
+
+// OutputAdapterConfig contains configuration for a single output adapter
+type OutputAdapterConfig struct {
+	// Output adapter name (for identification)
+	Name string `json:"name" yaml:"name"`
+
+	// Output adapter type (stdout, unix_socket, grpc_otlp, http_json)
+	Type string `json:"type" yaml:"type"`
+
+	// Enable/disable this output
+	Enabled bool `json:"enabled" yaml:"enabled"`
+
+	// Output-specific configuration
+	Config map[string]interface{} `json:"config" yaml:"config"`
+}
+
+// ComplianceSecurityConfig contains security and compliance settings
+type ComplianceSecurityConfig struct {
+	// General security settings
+	EnableCompliance      bool                     `json:"enable_compliance" yaml:"enable_compliance"`
+	ComplianceFrameworks  []string                 `json:"compliance_frameworks" yaml:"compliance_frameworks"`
+
+	// Data filtering and PII protection
+	EnableDataFiltering   bool                     `json:"enable_data_filtering" yaml:"enable_data_filtering"`
+	PIIDetection         PIIDetectionConfig       `json:"pii_detection" yaml:"pii_detection"`
+	DataClassification   DataClassificationConfig `json:"data_classification" yaml:"data_classification"`
+
+	// Audit logging
+	EnableAuditLogging   bool                     `json:"enable_audit_logging" yaml:"enable_audit_logging"`
+	AuditConfig         AuditConfig              `json:"audit_config" yaml:"audit_config"`
+
+	// Encryption
+	EnableEncryption    bool                     `json:"enable_encryption" yaml:"enable_encryption"`
+	EncryptionConfig    EncryptionConfig         `json:"encryption_config" yaml:"encryption_config"`
+
+	// Access control
+	EnableAccessControl bool                     `json:"enable_access_control" yaml:"enable_access_control"`
+	AccessControlConfig AccessControlConfig      `json:"access_control_config" yaml:"access_control_config"`
+
+	// Data retention
+	EnableRetentionPolicy bool                   `json:"enable_retention_policy" yaml:"enable_retention_policy"`
+	RetentionConfig      RetentionConfig         `json:"retention_config" yaml:"retention_config"`
 }
 
 // FileOutputConfig contains file output settings
@@ -281,6 +389,159 @@ type SecurityConfig struct {
 	RequiredCapabilities []string `json:"required_capabilities" yaml:"required_capabilities"`
 }
 
+// DistributedTracingConfig contains distributed tracing settings
+type DistributedTracingConfig struct {
+	// OpenTelemetry settings
+	EnableOpenTelemetry bool    `json:"enable_opentelemetry" yaml:"enable_opentelemetry"`
+	OTLPExporter        string  `json:"otlp_exporter" yaml:"otlp_exporter"`         // otlp, jaeger, console
+	OTLPEndpoint        string  `json:"otlp_endpoint" yaml:"otlp_endpoint"`
+
+	// Jaeger settings
+	EnableJaeger          bool   `json:"enable_jaeger" yaml:"enable_jaeger"`
+	JaegerAgentEndpoint   string `json:"jaeger_agent_endpoint" yaml:"jaeger_agent_endpoint"`
+	JaegerCollectorURL    string `json:"jaeger_collector_url" yaml:"jaeger_collector_url"`
+
+	// Common settings
+	ServiceName     string  `json:"service_name" yaml:"service_name"`
+	Environment     string  `json:"environment" yaml:"environment"`
+	SamplingRatio   float64 `json:"sampling_ratio" yaml:"sampling_ratio"`
+
+	// Batch settings
+	BatchSize       int `json:"batch_size" yaml:"batch_size"`
+	BatchTimeout    int `json:"batch_timeout_ms" yaml:"batch_timeout_ms"`
+	MaxQueueSize    int `json:"max_queue_size" yaml:"max_queue_size"`
+}
+
+// AnalyticsConfig contains real-time analytics settings
+type AnalyticsConfig struct {
+	// Processing settings
+	BufferSize           int      `json:"buffer_size" yaml:"buffer_size"`
+	WorkerThreads        int      `json:"worker_threads" yaml:"worker_threads"`
+	FlushIntervalSeconds int      `json:"flush_interval_seconds" yaml:"flush_interval_seconds"`
+
+	// Time window settings
+	WindowSizes    []string `json:"window_sizes" yaml:"window_sizes"`
+	RetentionHours int      `json:"retention_hours" yaml:"retention_hours"`
+
+	// Metrics settings
+	EnabledMetrics []string `json:"enabled_metrics" yaml:"enabled_metrics"`
+
+	// Alerting settings
+	EnableAlerting bool               `json:"enable_alerting" yaml:"enable_alerting"`
+	AlertRules     []AlertRuleConfig  `json:"alert_rules" yaml:"alert_rules"`
+
+	// Dashboard settings
+	EnableDashboard bool   `json:"enable_dashboard" yaml:"enable_dashboard"`
+	DashboardPort   int    `json:"dashboard_port" yaml:"dashboard_port"`
+	MetricsEndpoint string `json:"metrics_endpoint" yaml:"metrics_endpoint"`
+}
+
+// AlertRuleConfig defines an alerting rule
+type AlertRuleConfig struct {
+	Name            string            `json:"name" yaml:"name"`
+	Metric          string            `json:"metric" yaml:"metric"`
+	Condition       string            `json:"condition" yaml:"condition"`       // gt, lt, eq, ne
+	Threshold       float64           `json:"threshold" yaml:"threshold"`
+	DurationSeconds int               `json:"duration_seconds" yaml:"duration_seconds"`
+	Labels          map[string]string `json:"labels" yaml:"labels"`
+	Annotations     map[string]string `json:"annotations" yaml:"annotations"`
+}
+
+// PIIDetectionConfig configures PII detection and redaction
+type PIIDetectionConfig struct {
+	EnableDetection  bool        `json:"enable_detection" yaml:"enable_detection"`
+	RedactionMode   string      `json:"redaction_mode" yaml:"redaction_mode"`
+	PIITypes        []string    `json:"pii_types" yaml:"pii_types"`
+	CustomPatterns  []PIIPattern `json:"custom_patterns" yaml:"custom_patterns"`
+	SensitivityLevel string      `json:"sensitivity_level" yaml:"sensitivity_level"`
+}
+
+// PIIPattern defines a custom PII detection pattern
+type PIIPattern struct {
+	Name        string  `json:"name" yaml:"name"`
+	Pattern     string  `json:"pattern" yaml:"pattern"`
+	Type        string  `json:"type" yaml:"type"`
+	Confidence  float64 `json:"confidence" yaml:"confidence"`
+	Description string  `json:"description" yaml:"description"`
+}
+
+// DataClassificationConfig configures data classification
+type DataClassificationConfig struct {
+	EnableClassification bool                  `json:"enable_classification" yaml:"enable_classification"`
+	ClassificationLevels []ClassificationLevel `json:"classification_levels" yaml:"classification_levels"`
+	AutoClassification   bool                  `json:"auto_classification" yaml:"auto_classification"`
+	DefaultLevel        string                `json:"default_level" yaml:"default_level"`
+}
+
+// ClassificationLevel defines a data classification level
+type ClassificationLevel struct {
+	Level       string   `json:"level" yaml:"level"`
+	Description string   `json:"description" yaml:"description"`
+	Patterns    []string `json:"patterns" yaml:"patterns"`
+	Actions     []string `json:"actions" yaml:"actions"`
+}
+
+// AuditConfig configures audit logging
+type AuditConfig struct {
+	AuditLevel       string   `json:"audit_level" yaml:"audit_level"`
+	LogDestination   string   `json:"log_destination" yaml:"log_destination"`
+	LogFormat       string   `json:"log_format" yaml:"log_format"`
+	IncludePayloads bool     `json:"include_payloads" yaml:"include_payloads"`
+	TamperProtection bool     `json:"tamper_protection" yaml:"tamper_protection"`
+	DigitalSigning  bool     `json:"digital_signing" yaml:"digital_signing"`
+	RetentionDays   int      `json:"retention_days" yaml:"retention_days"`
+	EncryptLogs     bool     `json:"encrypt_logs" yaml:"encrypt_logs"`
+	RemoteEndpoints []string `json:"remote_endpoints" yaml:"remote_endpoints"`
+}
+
+// EncryptionConfig configures encryption settings
+type EncryptionConfig struct {
+	Algorithm         string `json:"algorithm" yaml:"algorithm"`
+	KeyRotationDays   int    `json:"key_rotation_days" yaml:"key_rotation_days"`
+	KeyDerivation     string `json:"key_derivation" yaml:"key_derivation"`
+	EncryptInTransit  bool   `json:"encrypt_in_transit" yaml:"encrypt_in_transit"`
+	EncryptAtRest     bool   `json:"encrypt_at_rest" yaml:"encrypt_at_rest"`
+	KeyManagementURL  string `json:"key_management_url" yaml:"key_management_url"`
+}
+
+// AccessControlConfig configures access control
+type AccessControlConfig struct {
+	AuthenticationMode     string        `json:"authentication_mode" yaml:"authentication_mode"`
+	AuthorizationMode      string        `json:"authorization_mode" yaml:"authorization_mode"`
+	Roles                 []Role        `json:"roles" yaml:"roles"`
+	Policies              []AccessPolicy `json:"policies" yaml:"policies"`
+	SessionTimeoutMinutes int           `json:"session_timeout_minutes" yaml:"session_timeout_minutes"`
+	MaxSessions           int           `json:"max_sessions" yaml:"max_sessions"`
+}
+
+// Role defines an access control role
+type Role struct {
+	Name        string   `json:"name" yaml:"name"`
+	Description string   `json:"description" yaml:"description"`
+	Permissions []string `json:"permissions" yaml:"permissions"`
+	Resources   []string `json:"resources" yaml:"resources"`
+}
+
+// AccessPolicy defines an access control policy
+type AccessPolicy struct {
+	Name       string            `json:"name" yaml:"name"`
+	Effect     string            `json:"effect" yaml:"effect"`
+	Actions    []string          `json:"actions" yaml:"actions"`
+	Resources  []string          `json:"resources" yaml:"resources"`
+	Conditions map[string]string `json:"conditions" yaml:"conditions"`
+	Principal  string            `json:"principal" yaml:"principal"`
+}
+
+// RetentionConfig configures data retention policies
+type RetentionConfig struct {
+	DefaultRetentionDays    int               `json:"default_retention_days" yaml:"default_retention_days"`
+	DataTypeRetentionDays   map[string]int    `json:"data_type_retention_days" yaml:"data_type_retention_days"`
+	AutoPurge              bool              `json:"auto_purge" yaml:"auto_purge"`
+	PurgeSchedule          string            `json:"purge_schedule" yaml:"purge_schedule"`
+	ArchiveBeforePurge     bool              `json:"archive_before_purge" yaml:"archive_before_purge"`
+	ArchiveLocation        string            `json:"archive_location" yaml:"archive_location"`
+}
+
 // DefaultConfig returns a default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -290,6 +551,56 @@ func DefaultConfig() *Config {
 			ProcessName:      "http-tracer",
 			PidFile:          "/var/run/http-tracer.pid",
 			GracefulShutdown: true,
+
+			// Advanced features (disabled by default for stability)
+			EnableSymbolResolution: false,
+			EnableAsyncTracking:    false,
+			EnableMultiProtocol:    false,
+			EnableDebugInfo:        false,
+
+			// BTF/DWARF configuration
+			BTFPath:                "/sys/kernel/btf/vmlinux",
+
+			// Async tracking configuration
+			MaxAsyncContexts:       10000,
+			AsyncContextTimeout:    300, // 5 minutes
+
+			// Protocol support
+			EnableGRPC:             false,
+			EnableWebSocket:        false,
+			EnableTCP:              false,
+
+			// Performance optimization (disabled by default for stability)
+			EnablePerformanceOptimization: false,
+			EnableCPUProfiling:           false,
+			EnableMemoryProfiling:        false,
+			EnableEventPooling:           false,
+			MaxEventPoolSize:             10000,
+
+			// Runtime integration (disabled by default for stability)
+			EnableRuntimeIntegration:     false,
+			EnableJVMTracing:             false,
+			EnablePythonTracing:          false,
+			EnableV8Tracing:              false,
+			RuntimeEventBufferSize:       50000,
+
+			// Container integration (disabled by default for stability)
+			EnableContainerIntegration:   false,
+			EnableContainerDiscovery:     false,
+			EnableKubernetesIntegration:  false,
+			ContainerDiscoveryInterval:   30,
+
+			// Load management (disabled by default for stability)
+			EnableLoadManagement:         false,
+			MaxEventsPerSecond:          100000,
+			MinSamplingRate:             0.01,
+			MaxSamplingRate:             1.0,
+
+			// Enhanced security (disabled by default for stability)
+			EnableEnhancedSecurity:       false,
+			EnableSELinux:                false,
+			EnableAppArmor:               false,
+			EnableSeccomp:                false,
 		},
 		Filtering: FilteringConfig{
 			Enabled: true,
@@ -338,6 +649,41 @@ func DefaultConfig() *Config {
 				FlushIntervalSeconds: 5,
 				Compression:          false,
 			},
+			EnableDistributedTracing: false,
+			DistributedTracing: DistributedTracingConfig{
+				EnableOpenTelemetry:   false,
+				OTLPExporter:          "otlp",
+				OTLPEndpoint:          "localhost:4317",
+				EnableJaeger:          false,
+				JaegerAgentEndpoint:   "localhost:6831",
+				JaegerCollectorURL:    "http://localhost:14268/api/traces",
+				ServiceName:           "ebpf-http-tracer",
+				Environment:           "development",
+				SamplingRatio:         1.0,
+				BatchSize:             512,
+				BatchTimeout:          5000,
+				MaxQueueSize:          2048,
+			},
+			EnableAnalytics: false,
+			Analytics: AnalyticsConfig{
+				BufferSize:           10000,
+				WorkerThreads:        4,
+				FlushIntervalSeconds: 10,
+				WindowSizes:          []string{"1m", "5m", "15m", "1h"},
+				RetentionHours:       24,
+				EnabledMetrics: []string{
+					"http_requests_total",
+					"http_request_duration",
+					"http_response_size",
+					"network_bytes_total",
+					"error_rate",
+				},
+				EnableAlerting:  false,
+				AlertRules:      []AlertRuleConfig{},
+				EnableDashboard: true,
+				DashboardPort:   8080,
+				MetricsEndpoint: "/metrics",
+			},
 		},
 		Performance: PerformanceConfig{
 			RingBufferSize:  1024 * 1024, // 1MB
@@ -354,6 +700,87 @@ func DefaultConfig() *Config {
 			Seccomp:                 false,
 			CapabilityRestrictions:  false,
 			RequiredCapabilities:    []string{"CAP_SYS_ADMIN", "CAP_BPF"},
+		},
+		ComplianceSecurity: ComplianceSecurityConfig{
+			EnableCompliance:     false,
+			ComplianceFrameworks: []string{},
+			EnableDataFiltering:  false,
+			PIIDetection: PIIDetectionConfig{
+				EnableDetection:  false,
+				RedactionMode:   "mask",
+				PIITypes:        []string{"email", "ssn", "credit_card", "phone"},
+				CustomPatterns:  []PIIPattern{},
+				SensitivityLevel: "medium",
+			},
+			DataClassification: DataClassificationConfig{
+				EnableClassification: false,
+				ClassificationLevels: []ClassificationLevel{
+					{
+						Level:       "public",
+						Description: "Public information",
+						Patterns:    []string{"public"},
+						Actions:     []string{"log"},
+					},
+					{
+						Level:       "internal",
+						Description: "Internal use only",
+						Patterns:    []string{"internal"},
+						Actions:     []string{"log", "audit"},
+					},
+					{
+						Level:       "confidential",
+						Description: "Confidential information",
+						Patterns:    []string{"confidential", "secret"},
+						Actions:     []string{"log", "audit", "encrypt"},
+					},
+				},
+				AutoClassification: false,
+				DefaultLevel:       "internal",
+			},
+			EnableAuditLogging: false,
+			AuditConfig: AuditConfig{
+				AuditLevel:       "basic",
+				LogDestination:   "file",
+				LogFormat:       "json",
+				IncludePayloads: false,
+				TamperProtection: false,
+				DigitalSigning:  false,
+				RetentionDays:   90,
+				EncryptLogs:     false,
+				RemoteEndpoints: []string{},
+			},
+			EnableEncryption: false,
+			EncryptionConfig: EncryptionConfig{
+				Algorithm:        "AES-256-GCM",
+				KeyRotationDays: 30,
+				KeyDerivation:   "PBKDF2",
+				EncryptInTransit: false,
+				EncryptAtRest:   false,
+				KeyManagementURL: "",
+			},
+			EnableAccessControl: false,
+			AccessControlConfig: AccessControlConfig{
+				AuthenticationMode:     "none",
+				AuthorizationMode:      "rbac",
+				Roles:                 []Role{},
+				Policies:              []AccessPolicy{},
+				SessionTimeoutMinutes: 480,
+				MaxSessions:           10,
+			},
+			EnableRetentionPolicy: false,
+			RetentionConfig: RetentionConfig{
+				DefaultRetentionDays: 30,
+				DataTypeRetentionDays: map[string]int{
+					"http_request":  7,
+					"http_response": 7,
+					"error_event":   90,
+					"audit_log":     365,
+				},
+				AutoPurge:          false,
+				PurgeSchedule:      "0 2 * * *",
+				ArchiveBeforePurge: false,
+				ArchiveLocation:    "/var/lib/ebpf-tracer/archive",
+			},
 		},
 	}
 }

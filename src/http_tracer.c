@@ -5,13 +5,33 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
+#include <linux/types.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
 
-#define MAX_PAYLOAD_SIZE 256
+// Tracepoint structures for syscalls
+struct trace_event_raw_sys_enter {
+    unsigned short common_type;
+    unsigned char common_flags;
+    unsigned char common_preempt_count;
+    int common_pid;
+    long id;
+    unsigned long args[6];
+};
+
+struct trace_event_raw_sys_exit {
+    unsigned short common_type;
+    unsigned char common_flags;
+    unsigned char common_preempt_count;
+    int common_pid;
+    long id;
+    long ret;
+};
+
+#define MAX_PAYLOAD_SIZE 64   // Reduced from 256 to fix stack issues
 #define MAX_COMM_SIZE 16
-#define MAX_PATH_SIZE 128
+#define MAX_PATH_SIZE 64      // Reduced from 128 to fix stack issues
 #define MAX_METHOD_SIZE 8
 #define HTTP_MIN_REQUEST_SIZE 14  // "GET / HTTP/1.1"
 
@@ -32,7 +52,7 @@ struct trace_context {
     __u64 parent_span_id;     // Parent span ID (0 if root)
     __u8 trace_flags;         // Trace flags (sampled, etc.)
     __u8 trace_state_len;     // Length of trace state
-    char trace_state[64];     // Trace state for vendor-specific data
+    char trace_state[32];     // Trace state for vendor-specific data (reduced)
 };
 
 // Enhanced request context for advanced correlation
@@ -63,9 +83,9 @@ struct event_t {
     __u16 dst_port;
     char comm[MAX_COMM_SIZE];
     char method[8];           // GET, POST, etc.
-    char path[MAX_PATH_SIZE]; // HTTP path
+    char path[32]; // HTTP path (reduced)
     __u32 payload_len;
-    char payload[MAX_PAYLOAD_SIZE];
+    char payload[32]; // Payload (reduced)
     __u8 event_type;          // 0=accept, 1=read, 2=connect, 3=write
     __u8 protocol;            // TCP=6, UDP=17
 
@@ -503,7 +523,7 @@ int trace_read_enter(struct trace_event_raw_sys_enter *ctx) {
 
     __u32 fd = (__u32)ctx->args[0];
     void *buf = (void *)ctx->args[1];
-    size_t count = (size_t)ctx->args[2];
+    __u64 count = (__u64)ctx->args[2];
 
     // Validate file descriptor range
     if (fd > 0x7FFFFFFF) {
@@ -747,8 +767,8 @@ int trace_write_enter(struct trace_event_raw_sys_enter *ctx) {
     __u32 pid = pid_tgid >> 32;
     __u32 tid = (__u32)pid_tgid;
     __u32 fd = (__u32)ctx->args[0];
-    const char __user *buf = (const char __user *)ctx->args[1];
-    size_t count = (size_t)ctx->args[2];
+    const char *buf = (const char *)ctx->args[1];
+    __u64 count = (__u64)ctx->args[2];
 
     // Skip kernel threads and invalid PIDs
     if (pid == 0 || pid > 0x7FFFFFFF) {
@@ -812,7 +832,7 @@ int trace_write_enter(struct trace_event_raw_sys_enter *ctx) {
     if (read_ret == 0) {
         // Try to parse as HTTP response
         char status_code[4] = {0};
-        char reason_phrase[32] = {0};
+        char reason_phrase[16] = {0};  // Reduced from 32
 
         int parse_ret = parse_http_response(event->payload, payload_size, status_code, reason_phrase);
         if (parse_ret == 0) {

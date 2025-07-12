@@ -1,0 +1,32 @@
+apiVersion: v2
+name: ebpf-http-tracer
+description: A Helm chart for eBPF HTTP Tracer with distributed tracing and real-time analytics
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ebpf
+  - http
+  - tracing
+  - monitoring
+  - observability
+  - analytics
+home: https://github.com/your-org/ebpf-http-tracer
+sources:
+  - https://github.com/your-org/ebpf-http-tracer
+maintainers:
+  - name: eBPF Team
+    email: ebpf-team@company.com
+dependencies:
+  - name: jaeger
+    version: "0.71.0"
+    repository: https://jaegertracing.github.io/helm-charts
+    condition: jaeger.enabled
+  - name: prometheus
+    version: "25.0.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: "6.60.0"
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled

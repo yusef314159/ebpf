@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ebpf-tracing
+  labels:
+    name: ebpf-tracing
+    app.kubernetes.io/name: ebpf-http-tracer
+    app.kubernetes.io/version: "1.0.0"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ebpf-tracer
+  namespace: ebpf-tracing
+  labels:
+    app.kubernetes.io/name: ebpf-http-tracer
+    app.kubernetes.io/component: tracer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ebpf-tracer
+  labels:
+    app.kubernetes.io/name: ebpf-http-tracer
+    app.kubernetes.io/component: tracer
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ebpf-tracer
+  labels:
+    app.kubernetes.io/name: ebpf-http-tracer
+    app.kubernetes.io/component: tracer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ebpf-tracer
+subjects:
+- kind: ServiceAccount
+  name: ebpf-tracer
+  namespace: ebpf-tracing
