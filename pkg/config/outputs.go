@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 	"time"
-	
-	"github.com/ebpf-tracing/pkg/outputs"
+
+	"ebpf-tracing/pkg/outputs"
 )
 
 // OutputsConfig contains configuration for all output adapters

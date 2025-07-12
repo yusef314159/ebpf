@@ -1,4 +1,4 @@
-# Makefile for UnieeBPF Tracing PoC
+# Makefile for Universal eBPF Tracing PoC
 
 # Variables
 CLANG ?= clang
@@ -52,6 +52,11 @@ stack_tracer.o: $(SRC_DIR)/stack_tracer.c
 ebpf: $(EBPF_OBJS)
 	@echo "All eBPF programs compiled successfully!"
 
+# Build userspace binary (explicit target)
+.PHONY: build
+build: $(BINARY)
+	@echo "Userspace binary built successfully: $(BINARY)"
+
 # Build Go binary
 $(BINARY): $(EBPF_OBJS) $(GO_MAIN) | $(BUILD_DIR)
 	@echo "Building Go userspace program..."
@@ -73,6 +78,13 @@ clean:
 	rm -f $(EBPF_OBJS)
 	rm -rf $(BUILD_DIR)
 	$(GO) clean
+
+# Deep clean including Go module cache
+.PHONY: clean-all
+clean-all: clean
+	@echo "Deep cleaning Go module cache..."
+	$(GO) clean -modcache
+	$(GO) mod tidy
 
 # Run the tracer (requires root privileges)
 .PHONY: run
@@ -181,8 +193,11 @@ help:
 	@echo "Universal eBPF Tracer - Available targets:"
 	@echo ""
 	@echo "  all           - Build the complete project (default)"
+	@echo "  ebpf          - Compile eBPF programs only"
+	@echo "  build         - Build userspace binary only"
 	@echo "  deps          - Install Go and Python dependencies"
 	@echo "  clean         - Clean build artifacts"
+	@echo "  clean-all     - Deep clean including Go module cache"
 	@echo "  run           - Run the HTTP tracer (requires root)"
 	@echo "  test-server   - Start the Flask test server"
 	@echo "  test          - Run simple HTTP tests"
@@ -192,11 +207,15 @@ help:
 	@echo ""
 	@echo "Usage example:"
 	@echo "  1. make deps          # Install dependencies"
-	@echo "  2. make all           # Build the project"
-	@echo "  3. make check-system  # Verify system requirements"
-	@echo "  4. Terminal 1: make test-server"
-	@echo "  5. Terminal 2: sudo make run"
-	@echo "  6. Terminal 3: make test"
+	@echo "  2. make ebpf          # Compile eBPF programs"
+	@echo "  3. make build         # Build userspace binary"
+	@echo "  4. make check-system  # Verify system requirements"
+	@echo "  5. Terminal 1: make test-server"
+	@echo "  6. Terminal 2: sudo make run"
+	@echo "  7. Terminal 3: make test"
+	@echo ""
+	@echo "Quick build:"
+	@echo "  make all              # Build everything (eBPF + userspace)"
 
 # Development targets
 .PHONY: dev-setup
